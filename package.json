@@ -1,17 +1,17 @@
 {
   "name": "nodejs",
   "version": "1.0.0",
+  "description": "A Discord bot built with Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["discord", "bot", "nodejs"],
+  "author": "Your Name",
   "license": "ISC",
   "dependencies": {
     "@types/node": "^18.0.6",
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.7"
-  },
-  "description": ""
+  }
 }
