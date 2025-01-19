@@ -1,62 +1,185 @@
-// Import required classes from discord.js and dotenv
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-require('dotenv').config(); // Load environment variables from .env file
+const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
+const express = require('express');
+const cron = require('node-cron');
+const { quizData, wordLists } = require('./data'); // Import data from separate files
+const { shuffleArray, trackActiveQuizzes, clearActiveQuiz } = require('./utilities');
 
-// Create a new client instance with necessary intents
+const TOKEN = process.env.BOT_TOKEN;
+
+if (!TOKEN) {
+    console.error('Error: BOT_TOKEN environment variable is not set.');
+    process.exit(1);
+}
+
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,        // Access guild functionality
-    GatewayIntentBits.GuildMembers, // Handle member events like joining
-    GatewayIntentBits.MessageContent // Read message content
-  ],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageReactions,
+    ],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// Event listener for when the bot is successfully logged in
+// Express server to keep the bot alive
+const app = express();
+app.get('/', (req, res) => {
+    res.send('Bot is running!');
+});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+
+// Embed Colors for Different Languages
+const embedColors = {
+    german: '#f4ed09',
+    french: '#09ebf6',
+    russian: '#7907ff',
+    spanish: '#FF5733', // Example color for Spanish
+    italian: '#C70039', // Example color for Italian
+    default: '#87CEEB',
+};
+
+// Word of the Day Channels
+const wordOfTheDayChannels = {
+    german: 'YOUR_GERMAN_CHANNEL_ID',
+    french: 'YOUR_FRENCH_CHANNEL_ID',
+    russian: 'YOUR_RUSSIAN_CHANNEL_ID',
+    spanish: 'YOUR_SPANISH_CHANNEL_ID',
+    italian: 'YOUR_ITALIAN_CHANNEL_ID',
+};
+
+// Active Quiz Tracking
+const activeQuizzes = {};
+
+// Start Command
+client.on('messageCreate', async (message) => {
+    if (message.content.toLowerCase() === '!quiz') {
+        if (activeQuizzes[message.author.id]) {
+            return message.reply('You are already taking a quiz. Please finish it first.');
+        }
+
+        const languageEmbed = new EmbedBuilder()
+            .setTitle('Choose Your Quiz Language')
+            .setDescription('React to select your language:\n\n🇩: German\n🇫: French\n🇷: Russian\n🇸: Spanish\n🇮: Italian')
+            .setColor(embedColors.default);
+
+        const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
+        const languageEmojis = ['🇩', '🇫', '🇷', '🇸', '🇮'];
+        const languages = ['german', 'french', 'russian', 'spanish', 'italian'];
+
+        for (const emoji of languageEmojis) {
+            await languageMessage.react(emoji);
+        }
+
+        const filter = (reaction, user) => languageEmojis.includes(reaction.emoji.name) && user.id === message.author.id;
+        try {
+            const collected = await languageMessage.awaitReactions({ filter, max: 1, time: 15000 });
+            const reaction = collected.first();
+
+            if (!reaction) {
+                return message.channel.send('No language selected. Quiz cancelled.');
+            }
+
+            const selectedLanguage = languages[languageEmojis.indexOf(reaction.emoji.name)];
+            const levelEmbed = new EmbedBuilder()
+                .setTitle('Choose Your Level')
+                .setDescription('React to select your level:\n\n🇦: A1\n🇧: A2\n🇨: B1\n🇩: B2\n🇪: C1\n🇫: C2')
+                .setColor(embedColors[selectedLanguage]);
+
+            const levelMessage = await message.channel.send({ embeds: [levelEmbed] });
+            const levelEmojis = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫'];
+            const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+            for (const emoji of levelEmojis) {
+                await levelMessage.react(emoji);
+            }
+
+            const levelFilter = (reaction, user) => levelEmojis.includes(reaction.emoji.name) && user.id === message.author.id;
+            const levelCollected = await levelMessage.awaitReactions({ filter: levelFilter, max: 1, time: 15000 });
+            const levelReaction = levelCollected.first();
+
+            if (!levelReaction) {
+                return message.channel.send('No level selected. Quiz cancelled.');
+            }
+
+            const selectedLevel = levels[levelEmojis.indexOf(levelReaction.emoji.name)];
+            const questions = quizData[selectedLanguage][selectedLevel] || [];
+            shuffleArray(questions);
+            const questionsToAsk = questions.slice(0, 5);
+
+            if (questionsToAsk.length === 0) {
+                return message.channel.send('No questions available for this level.');
+            }
+
+            activeQuizzes[message.author.id] = { language: selectedLanguage, level: selectedLevel, score: 0, detailedResults: [] };
+
+            for (const question of questionsToAsk) {
+                const embed = new EmbedBuilder()
+                    .setTitle(`**${selectedLanguage.toUpperCase()} Vocabulary Quiz**`)
+                    .setDescription(`What is the English meaning of "${question.word}"?`)
+                    .addFields(question.options.map((opt) => ({ name: opt, value: '\u200B', inline: true })))
+                    .setColor(embedColors[selectedLanguage])
+                    .setFooter({ text: 'React with the emoji corresponding to your answer' });
+
+                const quizMessage = await message.channel.send({ embeds: [embed] });
+                for (const emoji of ['🇦', '🇧', '🇨', '🇩']) {
+                    await quizMessage.react(emoji);
+                }
+
+                const quizFilter = (reaction, user) =>
+                    ['🇦', '🇧', '🇨', '🇩'].includes(reaction.emoji.name) && user.id === message.author.id;
+                const quizCollected = await quizMessage.awaitReactions({ filter: quizFilter, max: 1, time: 15000 });
+                const quizReaction = quizCollected.first();
+
+                if (quizReaction && quizReaction.emoji.name === question.correct) {
+                    activeQuizzes[message.author.id].score++;
+                }
+
+                await quizMessage.delete();
+            }
+
+            const result = activeQuizzes[message.author.id];
+            clearActiveQuiz(activeQuizzes, message.author.id);
+
+            const resultEmbed = new EmbedBuilder()
+                .setTitle('Quiz Results')
+                .setDescription(`You scored ${result.score} out of 5 in level ${result.level} (${result.language.toUpperCase()})!`)
+                .setColor(embedColors[selectedLanguage]);
+
+            await message.channel.send({ embeds: [resultEmbed] });
+        } catch (error) {
+            console.error(error);
+            return message.channel.send('An error occurred. Please try again.');
+        }
+    }
+});
+
+// Word of the Day Scheduler
+cron.schedule('30 03 * * *', async () => {
+    for (const [language, channelId] of Object.entries(wordOfTheDayChannels)) {
+        const channel = await client.channels.fetch(channelId);
+        const words = wordLists[language];
+        const randomWord = words[Math.floor(Math.random() * words.length)];
+        const embed = new EmbedBuilder()
+            .setTitle(`**Word of the Day (${language.toUpperCase()})**`)
+            .setDescription(`**Word:** ${randomWord.word}`)
+            .addFields(
+                { name: '**Meaning**', value: randomWord.meaning },
+                { name: '**Plural**', value: randomWord.plural },
+                { name: '**Indefinite Article**', value: randomWord.indefinite },
+                { name: '**Definite Article**', value: randomWord.definite }
+            )
+            .setColor(embedColors[language]);
+
+        await channel.send({ embeds: [embed] });
+    }
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
 client.once('ready', () => {
-  console.log(`✅ Logged in as ${client.user.tag}!`);
+    console.log(`${client.user.tag} is online!`);
 });
 
-// Event listener for when a new member joins the server
-client.on('guildMemberAdd', async (member) => {
-  console.log(`📥 ${member.user.tag} has joined the server.`);
-
-  // Calculate account age
-  const accountAge = Date.now() - member.user.createdTimestamp;
-  const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
-
-  // Check if account is less than 3 days old
-  if (accountAge < threeDaysInMillis) {
-    // Create an embedded message to send as a DM
-    const embed = new EmbedBuilder()
-      .setColor('#FF0000') // Red for warning
-      .setTitle('🚨 Account Age Restriction')
-      .setDescription('Your account must be at least **3 days old** to join this server.')
-      .addFields(
-        { name: 'Reason', value: 'Your account is too new to join this server.' },
-        { name: 'Action', value: 'You have been kicked for violating the rule.' }
-      )
-      .setTimestamp()
-      .setFooter({ text: 'Please contact a server admin if you believe this is a mistake.' });
-
-    // Send the embedded message to the new member
-    try {
-      await member.send({ embeds: [embed] });
-      console.log(`📤 Sent DM to ${member.user.tag}.`);
-    } catch (error) {
-      console.error(`❌ Could not send DM to ${member.user.tag}.`, error);
-    }
-
-    // Kick the member from the server
-    try {
-      await member.kick('Account less than 3 days old');
-      console.log(`🔨 Kicked ${member.user.tag} for having an account less than 3 days old.`);
-    } catch (error) {
-      console.error(`❌ Failed to kick ${member.user.tag}.`, error);
-    }
-  }
-});
-
-// Log in to Discord with your app's token (stored in .env file)
-client.login(process.env.DISCORD_TOKEN)
-  .then(() => console.log('🚀 Bot is running...'))
-  .catch((error) => console.error('❌ Failed to log in:', error));
+client.login(TOKEN);
