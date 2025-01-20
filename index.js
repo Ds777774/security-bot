@@ -1,8 +1,10 @@
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
-const { quizData, wordLists } = require('./data'); // Import data from separate files
-const { shuffleArray, trackActiveQuizzes, clearActiveQuiz } = require('./utilities');
+const { germanQuizData, germanWordList } = require('./germanData');
+const { frenchQuizData, frenchWordList } = require('./frenchData');
+const { russianQuizData, russianWordList } = require('./russianData');
+const { shuffleArray, clearActiveQuiz } = require('./utilities');
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
@@ -39,9 +41,9 @@ const embedColors = {
 
 // Word of the Day Channels
 const wordOfTheDayChannels = {
-    german: 'YOUR_GERMAN_CHANNEL_ID',
-    french: 'YOUR_FRENCH_CHANNEL_ID',
-    russian: 'YOUR_RUSSIAN_CHANNEL_ID',
+    german: '1327875414584201350',
+    french: '1327875414584201350',
+    russian: '1327875414584201350',
 };
 
 // Active Quiz Tracking
@@ -77,6 +79,12 @@ client.on('messageCreate', async (message) => {
             }
 
             const selectedLanguage = languages[languageEmojis.indexOf(reaction.emoji.name)];
+            const quizData = {
+                german: germanQuizData,
+                french: frenchQuizData,
+                russian: russianQuizData,
+            }[selectedLanguage];
+
             const levelEmbed = new EmbedBuilder()
                 .setTitle('Choose Your Level')
                 .setDescription('React to select your level:\n\n🇦: A1\n🇧: A2\n🇨: B1\n🇩: B2\n🇪: C1\n🇫: C2')
@@ -99,7 +107,7 @@ client.on('messageCreate', async (message) => {
             }
 
             const selectedLevel = levels[levelEmojis.indexOf(levelReaction.emoji.name)];
-            const questions = quizData[selectedLanguage][selectedLevel] || [];
+            const questions = quizData[selectedLevel] || [];
             shuffleArray(questions);
             const questionsToAsk = questions.slice(0, 5);
 
@@ -150,11 +158,10 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// Word of the Day Scheduler with different times
-cron.schedule('30 03 * * *', async () => {
+// Word of the Day Schedules
+cron.schedule('07 11 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.german);
-    const words = wordLists.german;
-    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const randomWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
     const embed = new EmbedBuilder()
         .setTitle('**Word of the Day (GERMAN)**')
         .setDescription(`**Word:** ${randomWord.word}`)
@@ -172,10 +179,10 @@ cron.schedule('30 03 * * *', async () => {
     timezone: 'Asia/Kolkata',
 });
 
-cron.schedule('00 05 * * *', async () => {
+// Repeat for French and Russian (adjust times)
+cron.schedule('08 11 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.french);
-    const words = wordLists.french;
-    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const randomWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
     const embed = new EmbedBuilder()
         .setTitle('**Word of the Day (FRENCH)**')
         .setDescription(`**Word:** ${randomWord.word}`)
@@ -193,10 +200,10 @@ cron.schedule('00 05 * * *', async () => {
     timezone: 'Asia/Kolkata',
 });
 
-cron.schedule('30 07 * * *', async () => {
+// Russian
+cron.schedule('09 11 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
-    const words = wordLists.russian;
-    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
     const embed = new EmbedBuilder()
         .setTitle('**Word of the Day (RUSSIAN)**')
         .setDescription(`**Word:** ${randomWord.word}`)
