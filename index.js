@@ -1,3 +1,4 @@
+const activeQuizzes = {};
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
