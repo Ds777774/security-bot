@@ -57,44 +57,46 @@ const wordOfTheDayTimes = {
     french: '00 22 * * *', // 6:15 PM IST
 };
 
-
 // Commands and Event Handling
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
+    // Handle the quiz command
     if (message.content.toLowerCase() === '!quiz') {
-        // Check if the user already has an active quiz
+        // Check if the user is already participating in a quiz
         if (activeQuizzes[message.author.id]) {
             return message.channel.send('You are already participating in a quiz! Please finish it before starting a new one.');
         }
 
-        const languageEmbed = new EmbedBuilder()
-            .setTitle('Choose a Language for the Quiz')
-            .setDescription('React to select the language:\n\n🇩: German\n🇫: French\n🇷: Russian')
-            .setColor(embedColors.default);
-
-        const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
-        const languageEmojis = ['🇩', '🇫', '🇷'];
-        const languages = ['german', 'french', 'russian'];
-
-        for (const emoji of languageEmojis) {
-            await languageMessage.react(emoji);
-        }
-
-        const filter = (reaction, user) =>
-            languageEmojis.includes(reaction.emoji.name) && user.id === message.author.id;
-
         try {
-            const collected = await languageMessage.awaitReactions({ filter, max: 1, time: 15000 });
-            const reaction = collected.first();
+            // Step 1: Select Language
+            const languageEmbed = new EmbedBuilder()
+                .setTitle('Choose a Language for the Quiz')
+                .setDescription('React to select the language:\n\n🇩: German\n🇫: French\n🇷: Russian')
+                .setColor(embedColors.default);
 
-            if (!reaction) {
+            const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
+            const languageEmojis = ['🇩', '🇫', '🇷'];
+            const languages = ['german', 'french', 'russian'];
+
+            for (const emoji of languageEmojis) {
+                await languageMessage.react(emoji);
+            }
+
+            const languageReaction = await languageMessage.awaitReactions({
+                filter: (reaction, user) => languageEmojis.includes(reaction.emoji.name) && user.id === message.author.id,
+                max: 1,
+                time: 15000,
+            });
+
+            if (!languageReaction.size) {
                 return message.channel.send('No language selected. Quiz cancelled.');
             }
 
-            const selectedLanguage = languages[languageEmojis.indexOf(reaction.emoji.name)];
+            const selectedLanguage = languages[languageEmojis.indexOf(languageReaction.first().emoji.name)];
             await languageMessage.delete();
 
+            // Step 2: Select Level
             const levelEmbed = new EmbedBuilder()
                 .setTitle(`Choose Your Level for the ${selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Quiz`)
                 .setDescription('React to select your level:\n\n🇦: A1\n🇧: A2\n🇨: B1\n🇩: B2\n🇪: C1\n🇫: C2')
@@ -108,19 +110,20 @@ client.on('messageCreate', async (message) => {
                 await levelMessage.react(emoji);
             }
 
-            const levelFilter = (reaction, user) =>
-                levelEmojis.includes(reaction.emoji.name) && user.id === message.author.id;
+            const levelReaction = await levelMessage.awaitReactions({
+                filter: (reaction, user) => levelEmojis.includes(reaction.emoji.name) && user.id === message.author.id,
+                max: 1,
+                time: 15000,
+            });
 
-            const collectedLevel = await levelMessage.awaitReactions({ filter: levelFilter, max: 1, time: 15000 });
-            const levelReaction = collectedLevel.first();
-
-            if (!levelReaction) {
+            if (!levelReaction.size) {
                 return message.channel.send('No level selected. Quiz cancelled.');
             }
 
-            const selectedLevel = levels[levelEmojis.indexOf(levelReaction.emoji.name)];
+            const selectedLevel = levels[levelEmojis.indexOf(levelReaction.first().emoji.name)];
             await levelMessage.delete();
 
+            // Step 3: Start Quiz
             const quizData = selectedLanguage === 'russian' ? russianQuizData : selectedLanguage === 'german' ? germanQuizData : frenchQuizData;
             const questions = quizData[selectedLevel] || [];
             shuffleArray(questions);
@@ -130,7 +133,6 @@ client.on('messageCreate', async (message) => {
                 return message.channel.send('No questions available for this level.');
             }
 
-            // Initialize quiz data for the user
             activeQuizzes[message.author.id] = { language: selectedLanguage, level: selectedLevel, score: 0, detailedResults: [] };
 
             for (const question of questionsToAsk) {
@@ -142,32 +144,33 @@ client.on('messageCreate', async (message) => {
 
                 const quizMessage = await message.channel.send({ embeds: [embed] });
                 const emojis = ['🇦', '🇧', '🇨', '🇩'];
+
                 for (const emoji of emojis) {
                     await quizMessage.react(emoji);
                 }
 
-                const quizFilter = (reaction, user) =>
-                    emojis.includes(reaction.emoji.name) && user.id === message.author.id;
+                const quizReaction = await quizMessage.awaitReactions({
+                    filter: (reaction, user) => emojis.includes(reaction.emoji.name) && user.id === message.author.id,
+                    max: 1,
+                    time: 60000,
+                });
 
-                const quizCollected = await quizMessage.awaitReactions({ filter: quizFilter, max: 1, time: 60000 });
-                const quizReaction = quizCollected.first();
-
-                if (quizReaction && quizReaction.emoji.name === question.correct) {
+                const userReaction = quizReaction.first();
+                if (userReaction && userReaction.emoji.name === question.correct) {
                     activeQuizzes[message.author.id].score++;
                 }
 
                 activeQuizzes[message.author.id].detailedResults.push({
                     word: question.word,
-                    userAnswer: quizReaction
-                        ? question.options[emojis.indexOf(quizReaction.emoji.name)]
-                        : 'No Answer',
-                    correct: question.meaning,
-                    isCorrect: quizReaction && quizReaction.emoji.name === question.correct,
+                    userAnswer: userReaction ? question.options[emojis.indexOf(userReaction.emoji.name)] : 'No Answer',
+                    correct: question.options[question.correct],
+                    isCorrect: userReaction && userReaction.emoji.name === question.correct,
                 });
 
                 await quizMessage.delete();
             }
 
+            // Step 4: Display Results
             const result = activeQuizzes[message.author.id];
             delete activeQuizzes[message.author.id];
 
@@ -176,21 +179,12 @@ client.on('messageCreate', async (message) => {
                 .setDescription(`You scored ${result.score} out of 5 in level ${result.level} (${result.language.charAt(0).toUpperCase() + result.language.slice(1)})!`)
                 .setColor(embedColors[result.language])
                 .addFields(
-                    { name: 'Level', value: result.level, inline: false },
-                    {
-                        name: 'Language',
-                        value: result.language.charAt(0).toUpperCase() + result.language.slice(1),
-                        inline: false,
-                    },
+                    { name: 'Level', value: result.level },
+                    { name: 'Language', value: result.language.charAt(0).toUpperCase() + result.language.slice(1) },
                     {
                         name: 'Detailed Results',
                         value: result.detailedResults
-                            .map(
-                                (res) =>
-                                    `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${
-                                        res.isCorrect ? '✅' : '❌'
-                                    }`
-                            )
+                            .map((res) => `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${res.isCorrect ? '✅' : '❌'}`)
                             .join('\n\n'),
                     }
                 );
