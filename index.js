@@ -4,10 +4,10 @@ const cron = require('node-cron');
 const { quizData, wordLists } = require('./data'); // Import data from separate files
 const { shuffleArray, trackActiveQuizzes, clearActiveQuiz } = require('./utilities');
 
-const TOKEN = process.env.BOT_TOKEN;
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
-if (!TOKEN) {
-    console.error('Error: BOT_TOKEN environment variable is not set.');
+if (!DISCORD_TOKEN) {
+    console.error('Error: DISCORD_TOKEN environment variable is not set.');
     process.exit(1);
 }
 
@@ -34,8 +34,6 @@ const embedColors = {
     german: '#f4ed09',
     french: '#09ebf6',
     russian: '#7907ff',
-    spanish: '#FF5733', // Example color for Spanish
-    italian: '#C70039', // Example color for Italian
     default: '#87CEEB',
 };
 
@@ -44,8 +42,6 @@ const wordOfTheDayChannels = {
     german: 'YOUR_GERMAN_CHANNEL_ID',
     french: 'YOUR_FRENCH_CHANNEL_ID',
     russian: 'YOUR_RUSSIAN_CHANNEL_ID',
-    spanish: 'YOUR_SPANISH_CHANNEL_ID',
-    italian: 'YOUR_ITALIAN_CHANNEL_ID',
 };
 
 // Active Quiz Tracking
@@ -60,12 +56,12 @@ client.on('messageCreate', async (message) => {
 
         const languageEmbed = new EmbedBuilder()
             .setTitle('Choose Your Quiz Language')
-            .setDescription('React to select your language:\n\n🇩: German\n🇫: French\n🇷: Russian\n🇸: Spanish\n🇮: Italian')
+            .setDescription('React to select your language:\n\n🇩: German\n🇫: French\n🇷: Russian')
             .setColor(embedColors.default);
 
         const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
-        const languageEmojis = ['🇩', '🇫', '🇷', '🇸', '🇮'];
-        const languages = ['german', 'french', 'russian', 'spanish', 'italian'];
+        const languageEmojis = ['🇩', '🇫', '🇷'];
+        const languages = ['german', 'french', 'russian'];
 
         for (const emoji of languageEmojis) {
             await languageMessage.react(emoji);
@@ -154,25 +150,65 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// Word of the Day Scheduler
+// Word of the Day Scheduler with different times
 cron.schedule('30 03 * * *', async () => {
-    for (const [language, channelId] of Object.entries(wordOfTheDayChannels)) {
-        const channel = await client.channels.fetch(channelId);
-        const words = wordLists[language];
-        const randomWord = words[Math.floor(Math.random() * words.length)];
-        const embed = new EmbedBuilder()
-            .setTitle(`**Word of the Day (${language.toUpperCase()})**`)
-            .setDescription(`**Word:** ${randomWord.word}`)
-            .addFields(
-                { name: '**Meaning**', value: randomWord.meaning },
-                { name: '**Plural**', value: randomWord.plural },
-                { name: '**Indefinite Article**', value: randomWord.indefinite },
-                { name: '**Definite Article**', value: randomWord.definite }
-            )
-            .setColor(embedColors[language]);
+    const channel = await client.channels.fetch(wordOfTheDayChannels.german);
+    const words = wordLists.german;
+    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (GERMAN)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: '**Meaning**', value: randomWord.meaning },
+            { name: '**Plural**', value: randomWord.plural },
+            { name: '**Indefinite Article**', value: randomWord.indefinite },
+            { name: '**Definite Article**', value: randomWord.definite }
+        )
+        .setColor(embedColors.german);
 
-        await channel.send({ embeds: [embed] });
-    }
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
+cron.schedule('00 05 * * *', async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.french);
+    const words = wordLists.french;
+    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (FRENCH)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: '**Meaning**', value: randomWord.meaning },
+            { name: '**Plural**', value: randomWord.plural },
+            { name: '**Indefinite Article**', value: randomWord.indefinite },
+            { name: '**Definite Article**', value: randomWord.definite }
+        )
+        .setColor(embedColors.french);
+
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
+cron.schedule('30 07 * * *', async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
+    const words = wordLists.russian;
+    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (RUSSIAN)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: '**Meaning**', value: randomWord.meaning },
+            { name: '**Plural**', value: randomWord.plural },
+            { name: '**Indefinite Article**', value: randomWord.indefinite },
+            { name: '**Definite Article**', value: randomWord.definite }
+        )
+        .setColor(embedColors.russian);
+
+    await channel.send({ embeds: [embed] });
 }, {
     scheduled: true,
     timezone: 'Asia/Kolkata',
@@ -182,4 +218,4 @@ client.once('ready', () => {
     console.log(`${client.user.tag} is online!`);
 });
 
-client.login(TOKEN);
+client.login(DISCORD_TOKEN);
