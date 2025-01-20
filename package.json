@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "postinstall": "npm ci"  // Use npm ci for faster, more reliable installs
+    "postinstall": "npm ci"
   },
   "keywords": ["discord", "bot", "nodejs"],
   "author": "Your Name",
