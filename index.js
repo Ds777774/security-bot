@@ -154,7 +154,7 @@ client.on('messageCreate', async (message) => {
     });
   }
 
-    if (message.content.toLowerCase() === '!quiz') {
+    if (message.content.toLowerCase() === '!dead') {
         if (activeQuizzes[message.author.id]) {
             return message.reply('You are already taking a quiz. Please finish it first.');
         }
