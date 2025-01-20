@@ -19,6 +19,7 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildMembers,  // Ensure GuildMembers intent is added
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
