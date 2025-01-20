@@ -1,5 +1,5 @@
 {
-  "name": "nodejs",
+  "name": "nodejs-discord-bot",
   "version": "1.0.0",
   "description": "A Discord bot built with Node.js",
   "main": "index.js",
@@ -10,7 +10,7 @@
   "author": "Your Name",
   "license": "ISC",
   "engines": {
-    "node": "14.x"
+    "node": "16.x" // Updated to 16.x for better compatibility with Render
   },
   "dependencies": {
     "@types/node": "^18.0.6",
