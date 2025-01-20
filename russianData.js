@@ -2,49 +2,49 @@
 const russianQuizData = {
     A1: [
         {
-            word: "Дом",
+            word: "дом",
             options: ["🇦 House", "🇧 Tree", "🇨 Car", "🇩 Dog"],
-            correct: "🇦" // Correct answer is "House"
+            correct: "🇦"
         },
         {
-            word: "Кошка",
+            word: "кошка",
             options: ["🇦 Cat", "🇧 Mouse", "🇨 Bird", "🇩 Horse"],
-            correct: "🇦" // Correct answer is "Cat"
+            correct: "🇦"
         }
     ],
     A2: [
         {
-            word: "Дружба",
+            word: "дружба",
             options: ["🇦 Friendship", "🇧 Love", "🇨 Anger", "🇩 Sadness"],
-            correct: "🇦" // Correct answer is "Friendship"
+            correct: "🇦"
         }
     ],
     B1: [
         {
-            word: "Свобода",
+            word: "свобода",
             options: ["🇦 Freedom", "🇧 Justice", "🇨 Peace", "🇩 Honor"],
-            correct: "🇦" // Correct answer is "Freedom"
+            correct: "🇦"
         }
     ],
     B2: [
         {
-            word: "Прогресс",
+            word: "прогресс",
             options: ["🇦 Progress", "🇧 Decline", "🇨 Start", "🇩 Stop"],
-            correct: "🇦" // Correct answer is "Progress"
+            correct: "🇦"
         }
     ],
     C1: [
         {
-            word: "Гармония",
+            word: "гармония",
             options: ["🇦 Harmony", "🇧 Chaos", "🇨 Peace", "🇩 Disagreement"],
-            correct: "🇦" // Correct answer is "Harmony"
+            correct: "🇦"
         }
     ],
     C2: [
         {
-            word: "Совершенство",
+            word: "совершенство",
             options: ["🇦 Perfection", "🇧 Imperfection", "🇨 Mediocrity", "🇩 Excellence"],
-            correct: "🇦" // Correct answer is "Perfection"
+            correct: "🇦"
         }
     ]
 };
@@ -52,25 +52,25 @@ const russianQuizData = {
 // Word of the Day Data for Russian
 const russianWordList = [
     {
-        word: "Собака",
+        word: "собака",
         meaning: "Dog",
-        plural: "Собаки",
-        indefinite: null, // Indefinite articles do not apply in Russian
-        definite: null // Definite articles do not apply in Russian
+        plural: "собаки",
+        indefinite: "-",
+        definite: "-"
     },
     {
-        word: "Книга",
+        word: "книга",
         meaning: "Book",
-        plural: "Книги",
-        indefinite: null,
-        definite: null
+        plural: "книги",
+        indefinite: "-",
+        definite: "-"
     },
     {
-        word: "Море",
+        word: "море",
         meaning: "Sea",
-        plural: "Моря",
-        indefinite: null,
-        definite: null
+        plural: "моря",
+        indefinite: "-",
+        definite: "-"
     }
 ];
 
