@@ -4,47 +4,47 @@ const frenchQuizData = {
         {
             word: "Maison",
             options: ["🇦 House", "🇧 Tree", "🇨 Car", "🇩 Dog"],
-            correct: "🇦" // Correct answer is "House"
+            correct: "🇦"
         },
         {
             word: "Chat",
             options: ["🇦 Cat", "🇧 Mouse", "🇨 Bird", "🇩 Horse"],
-            correct: "🇦" // Correct answer is "Cat"
+            correct: "🇦"
         }
     ],
     A2: [
         {
             word: "Amitié",
             options: ["🇦 Friendship", "🇧 Love", "🇨 Anger", "🇩 Sadness"],
-            correct: "🇦" // Correct answer is "Friendship"
+            correct: "🇦"
         }
     ],
     B1: [
         {
             word: "Liberté",
             options: ["🇦 Freedom", "🇧 Justice", "🇨 Peace", "🇩 Honor"],
-            correct: "🇦" // Correct answer is "Freedom"
+            correct: "🇦"
         }
     ],
     B2: [
         {
             word: "Progrès",
             options: ["🇦 Progress", "🇧 Decline", "🇨 Start", "🇩 Stop"],
-            correct: "🇦" // Correct answer is "Progress"
+            correct: "🇦"
         }
     ],
     C1: [
         {
             word: "Harmonie",
             options: ["🇦 Harmony", "🇧 Chaos", "🇨 Peace", "🇩 Disagreement"],
-            correct: "🇦" // Correct answer is "Harmony"
+            correct: "🇦"
         }
     ],
     C2: [
         {
             word: "Perfection",
             options: ["🇦 Perfection", "🇧 Imperfection", "🇨 Mediocrity", "🇩 Excellence"],
-            correct: "🇦" // Correct answer is "Perfection"
+            correct: "🇦"
         }
     ]
 };
