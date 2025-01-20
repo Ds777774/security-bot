@@ -178,11 +178,16 @@ client.on('messageCreate', async (message) => {
                 .setColor('#ff0000');
             await member.send({ embeds: [dmEmbed] });
 
-            // Kick the member
+            // Attempt to kick the member
+            console.log(`Attempting to kick ${member.user.tag}...`); // Log to check attempt
             await member.kick('Account is less than 1 day old');
-            console.log(`Kicked ${member.user.tag} for having an account younger than 1 day.`);
+            console.log(`Successfully kicked ${member.user.tag} for having an account younger than 1 day.`);
         } catch (error) {
-            console.error('Error kicking member or sending DM:', error);
+            if (error.code === 50013) {
+                console.error('Permission error: The bot does not have permission to kick members.');
+            } else {
+                console.error('Error kicking member or sending DM:', error);
+            }
         }
     }
 });
