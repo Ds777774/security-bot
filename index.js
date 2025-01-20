@@ -153,6 +153,65 @@ client.on('messageCreate', async (message) => {
       }
     });
   }
+const messageTimestamps = {}; // To track message timestamps per user
+const spamThreshold = 5; // Number of messages in a short time to trigger warning
+const timeoutDuration = 3 * 60 * 1000; // 3 minutes timeout in milliseconds
+const userTimeouts = {}; // To track users who are timed out
+
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return; // Ignore bot messages
+
+    const userId = message.author.id;
+
+    // Initialize the user in the messageTimestamps object
+    if (!messageTimestamps[userId]) {
+        messageTimestamps[userId] = [];
+    }
+
+    // Add the current timestamp of the message to the array
+    messageTimestamps[userId].push(Date.now());
+
+    // Filter messages sent within the last minute (adjust as needed)
+    messageTimestamps[userId] = messageTimestamps[userId].filter(
+        timestamp => Date.now() - timestamp <= 60000
+    );
+
+    // If the user sends 5 or more messages in the last minute
+    if (messageTimestamps[userId].length >= spamThreshold) {
+        // Send a warning message to the user
+        await message.reply('🚨 Warning: You are sending messages too quickly. Please slow down!');
+
+        // Check if the user has been timed out already
+        if (!userTimeouts[userId]) {
+            // Timeout the user for 3 minutes
+            try {
+                await message.guild.members.timeout(message.author, timeoutDuration, 'Spam behavior');
+                userTimeouts[userId] = true; // Mark the user as timed out
+                await message.reply('You have been timed out for 3 minutes due to repeated spamming.');
+            } catch (err) {
+                console.error('Error while timing out the user:', err);
+            }
+        }
+    }
+});
+
+// Reset timeout status when the timeout expires
+setInterval(() => {
+    // Reset timeout statuses after 3 minutes
+    const now = Date.now();
+    for (const userId in userTimeouts) {
+        if (userTimeouts[userId] && now - userTimeouts[userId] >= timeoutDuration) {
+            delete userTimeouts[userId]; // Remove the timeout after the duration
+        }
+    }
+
+    // Clean up old timestamps (older than 1 minute)
+    for (const [userId, timestamps] of Object.entries(messageTimestamps)) {
+        messageTimestamps[userId] = timestamps.filter(
+            timestamp => Date.now() - timestamp <= 60000
+        );
+    }
+}, 60000);
 
     if (message.content.toLowerCase() === '!quiz') {
         if (activeQuizzes[message.author.id]) {
