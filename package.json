@@ -4,17 +4,20 @@
   "description": "A Discord bot built with Node.js",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "postinstall": "npm install"
   },
   "keywords": ["discord", "bot", "nodejs"],
   "author": "Your Name",
   "license": "ISC",
   "engines": {
-    "node": "16.x"
+    "node": "18.x"
   },
   "dependencies": {
-    "@types/node": "^18.0.6",
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.6"
   }
 }
