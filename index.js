@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, MessageEmbed } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const germanData = require('./germanData');
 const frenchData = require('./frenchData');
 const russianData = require('./russianData');
@@ -58,7 +58,7 @@ function sendWordOfTheDay(language, wordList) {
     const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
     const embedColor = getEmbedColor(language);
 
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
         .setColor(embedColor)
         .setTitle(`Word of the Day - ${language.toUpperCase()}`)
         .setDescription(`
@@ -85,7 +85,7 @@ client.on('messageCreate', async (message) => {
 
     // Help command
     if (message.content.startsWith('!help')) {
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
             .setColor('#1cd86c')
             .setTitle('Help - Commands')
             .setDescription('Here are the available commands:')
@@ -99,7 +99,7 @@ client.on('messageCreate', async (message) => {
 
     // Resources command
     if (message.content.startsWith('!resources')) {
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
             .setColor('#1cd86c')
             .setTitle('Language Learning Resources')
             .setDescription('Here are some resources to help you learn:')
@@ -113,7 +113,7 @@ client.on('messageCreate', async (message) => {
 
     // Start quiz command
     if (message.content.startsWith('!quiz')) {
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
             .setColor('#1cd86c')
             .setTitle('Choose a Language')
             .setDescription('React with:\n🇩 for German\n🇫 for French\n🇷 for Russian');
@@ -135,7 +135,7 @@ client.on('messageCreate', async (message) => {
 
             await msg.delete(); // Delete language selection message
 
-            const levelEmbed = new MessageEmbed()
+            const levelEmbed = new EmbedBuilder()
                 .setColor(getEmbedColor(language))
                 .setTitle('Choose a Level')
                 .setDescription(
@@ -180,7 +180,7 @@ function startQuiz(message, language, level, data) {
     let currentQuestion = 0;
     let score = 0;
 
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
         .setColor(getEmbedColor(language))
         .setTitle(`${language.toUpperCase()} Quiz - Level ${level}`)
         .setDescription(`**Question 1:** ${questions[currentQuestion].word}\n${questions[currentQuestion].options.join('\n')}`);
