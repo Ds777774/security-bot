@@ -351,7 +351,9 @@ cron.schedule('16 15 * * *', async () => {
 }); 
 
 client.once('ready', () => {
-    console.log(`${client.user.tag} is online!`);
-}); 
+    console.log(`${client.user?.tag} is online!`);
+});
 
-client.login(DISCORD_TOKEN); 
+client.login(DISCORD_TOKEN).catch((err) => {
+    console.error('Failed to log in:', err);
+});
