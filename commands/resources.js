@@ -4,6 +4,7 @@ const embedColors = {
     russian: '#7907ff',
     german: '#f4ed09',
     french: '#09ebf6',
+    default: '#1cd86c',  // Default color for the embed
 };
 
 module.exports = {
