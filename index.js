@@ -160,8 +160,8 @@ clearActiveQuiz(activeQuizzes, message.author.id);
 
 const resultEmbed = new EmbedBuilder()
     .setTitle('Quiz Results')
-    .setDescription(`You scored ${result.score} out of 5 in level ${result.level} (${result.language.toUpperCase()})!`)
-    .setColor(embedColors[selectedLanguage]) // Make sure 'selectedLanguage' is available in this context
+    .setDescription(`You scored ${result.score} out of 5 in level ${result.level}!`)
+    .setColor(embedColors[selectedLanguage]); // Make sure 'selectedLanguage' is available in this context
     .addFields(
         { name: 'Level', value: result.level, inline: false },
         { name: 'Language', value: result.language.charAt(0).toUpperCase() + result.language.slice(1), inline: false }, // Added language
