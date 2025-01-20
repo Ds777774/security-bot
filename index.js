@@ -154,6 +154,42 @@ client.on('messageCreate', async (message) => {
     });
   }
 
+client.on('guildMemberAdd', async (member) => {
+  try {
+    // Get the account creation date
+    const accountCreatedAt = member.user.createdAt;
+
+    // Get the current date and check if the account is older than 1 day
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1); // 1 day ago
+
+    if (accountCreatedAt > oneDayAgo) {
+      // The account is too new (less than 1 day old)
+      
+      // Kick the user from the server
+      await member.kick();
+
+      // Send a DM to the user explaining why they were kicked
+      const dmEmbed = new EmbedBuilder()
+        .setTitle('Account Too New to Join')
+        .setDescription(
+          'Your account must be at least 1 day old to join this server.\n' +
+          'Please wait until your account is older, then you can try joining again.'
+        )
+        .setColor('#e74c3c')
+        .setFooter({ text: 'Security Check' });
+
+      try {
+        await member.send({ embeds: [dmEmbed] });
+      } catch (error) {
+        console.error('Could not send DM to the member:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking account age or kicking member:', error);
+  }
+});
+
     if (message.content.toLowerCase() === '!quiz') {
         if (activeQuizzes[message.author.id]) {
             return message.reply('You are already taking a quiz. Please finish it first.');
