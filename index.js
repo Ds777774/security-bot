@@ -161,7 +161,7 @@ clearActiveQuiz(activeQuizzes, message.author.id);
 const resultEmbed = new EmbedBuilder()
     .setTitle('Quiz Results')
     .setDescription(`You scored ${result.score} out of 5 in level ${result.level}!`)
-    .setColor(embedColors[result.language]); // Make sure 'selectedLanguage' is available in this context
+    .setColor(embedColors[result.language]) // Fixed syntax error here by removing semicolon
     .addFields(
         { name: 'Level', value: result.level, inline: false },
         { name: 'Language', value: result.language.charAt(0).toUpperCase() + result.language.slice(1), inline: false }, // Added language
@@ -179,10 +179,10 @@ const resultEmbed = new EmbedBuilder()
     );
 
 await message.channel.send({ embeds: [resultEmbed] });
-        } catch (error) {
-            console.error(error);
-            return message.channel.send('An error occurred. Please try again.');
-        }
+} catch (error) {
+    console.error(error);
+    return message.channel.send('An error occurred. Please try again.');
+}
     }
 });
 
