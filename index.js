@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
-const { russianQuizData, germanQuizData, frenchQuizData, russianWordList, germanWordList, frenchWordList } = require('./languageData');
+const { russianQuizData, germanQuizData, frenchQuizData, russianWordList, germanWordList, frenchWordList } = require('./russianData'); // Assuming you have the data in separate files
 const { shuffleArray } = require('./utilities');
 
 // Environment Variables
@@ -38,11 +38,18 @@ const embedColors = {
     default: '#1cd86c',
 };
 
-// Word of the Day Channels (Replace with actual channel IDs)
+// Word of the Day Channels and Schedule
 const wordOfTheDayChannels = {
     russian: 'YOUR_RUSSIAN_CHANNEL_ID_HERE',
     german: 'YOUR_GERMAN_CHANNEL_ID_HERE',
     french: 'YOUR_FRENCH_CHANNEL_ID_HERE',
+};
+
+// Word of the Day Schedule (Change timings if needed)
+const wordOfTheDayTimes = {
+    russian: '30 12 * * *', // 12:30 PM IST
+    german: '0 9 * * *', // 9:00 AM IST
+    french: '15 18 * * *', // 6:15 PM IST
 };
 
 // Active Quiz Tracking
@@ -172,25 +179,61 @@ client.on('messageCreate', async (message) => {
 });
 
 // Word of the Day Scheduler
-cron.schedule('30 12 * * *', async () => {
-    for (const [language, channelId] of Object.entries(wordOfTheDayChannels)) {
-        const channel = await client.channels.fetch(channelId);
-        const wordList =
-            language === 'russian' ? russianWordList : language === 'german' ? germanWordList : frenchWordList;
-        const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
+cron.schedule(wordOfTheDayTimes.russian, async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
+    const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
 
-        const embed = new EmbedBuilder()
-            .setTitle(`**Word of the Day (${language.charAt(0).toUpperCase() + language.slice(1)})**`)
-            .setDescription(`**Word:** ${randomWord.word}`)
-            .addFields(
-                { name: 'Meaning', value: randomWord.meaning },
-                { name: 'Plural', value: randomWord.plural },
-                { name: 'Examples', value: randomWord.examples }
-            )
-            .setColor(embedColors[language]);
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (Russian)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: 'Meaning', value: randomWord.meaning },
+            { name: 'Plural', value: randomWord.plural },
+            { name: 'Examples', value: randomWord.examples }
+        )
+        .setColor(embedColors.russian);
 
-        await channel.send({ embeds: [embed] });
-    }
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
+cron.schedule(wordOfTheDayTimes.german, async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.german);
+    const randomWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
+
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (German)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: 'Meaning', value: randomWord.meaning },
+            { name: 'Plural', value: randomWord.plural },
+            { name: 'Examples', value: randomWord.examples }
+        )
+        .setColor(embedColors.german);
+
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
+cron.schedule(wordOfTheDayTimes.french, async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.french);
+    const randomWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
+
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (French)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: 'Meaning', value: randomWord.meaning },
+            { name: 'Plural', value: randomWord.plural },
+            { name: 'Examples', value: randomWord.examples }
+        )
+        .setColor(embedColors.french);
+
+    await channel.send({ embeds: [embed] });
 }, {
     scheduled: true,
     timezone: 'Asia/Kolkata',
