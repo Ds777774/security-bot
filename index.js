@@ -354,4 +354,4 @@ client.once('ready', () => {
     console.log(`${client.user.tag} is online!`);
 }); 
 
-client.login(DISCORD_TOKEN);
+client.login(DISCORD_TOKEN); 
