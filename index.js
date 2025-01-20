@@ -200,7 +200,7 @@ client.on('messageCreate', async (message) => {
             return message.channel.send('An error occurred. Please try again.');
         }
     }
-});
+}
 
     if (message.content.toLowerCase() === '!help') {
         help.execute(message);
