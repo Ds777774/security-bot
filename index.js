@@ -56,7 +56,6 @@ const wordOfTheDayTimes = {
 };
 
 // Active Quiz Tracking
-const activeQuizzes = {};
 
 // Commands and Event Handling
 client.on('messageCreate', async (message) => {
