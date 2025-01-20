@@ -10,10 +10,9 @@
   "author": "Your Name",
   "license": "ISC",
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   },
   "dependencies": {
-    "@types/node": "^18.0.6",
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.7"
   }
