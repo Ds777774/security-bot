@@ -154,10 +154,10 @@ client.on('messageCreate', async (message) => {
     });
   }
 
-  // Account Age Security
-  const serverId = '1327875414584201347'; // Your server ID
+// Account Age Security
+const serverId = '1327875414584201347'; // Your server ID
 
-  client.on('guildMemberAdd', async (member) => {
+client.on('guildMemberAdd', async (member) => {
     if (member.guild.id !== serverId) return; // Ensure the check is only for your server
 
     // Get the account creation date of the member
@@ -171,18 +171,25 @@ client.on('messageCreate', async (message) => {
     // If the account is less than 1 day old, kick the member and send a DM
     if (timeDifference < oneDayInMilliseconds) {
         try {
-            // Send a DM to the new member explaining why they were kicked
+            // Create an embedded message to explain the reason for the kick
             const dmEmbed = new EmbedBuilder()
                 .setTitle('Account Age Requirement')
-                .setDescription('Your account must be at least 1 day old to join this server.')
-                .setColor('#ff0000');
+                .setDescription('Your account must be at least **1 day old** to join this server. As your account is too young, you have been kicked.')
+                .setColor('#ff0000')
+                .setFooter({ text: 'Please try again once your account meets the requirement.' });
+
+            // Send a DM to the new member explaining why they were kicked
             await member.send({ embeds: [dmEmbed] });
 
-            // Attempt to kick the member
-            console.log(`Attempting to kick ${member.user.tag}...`); // Log to check attempt
+            // Log the attempt to kick the member
+            console.log(`Attempting to kick ${member.user.tag} for having an account younger than 1 day...`);
+
+            // Kick the member
             await member.kick('Account is less than 1 day old');
             console.log(`Successfully kicked ${member.user.tag} for having an account younger than 1 day.`);
+
         } catch (error) {
+            // If the bot doesn't have permission to kick members, log the error
             if (error.code === 50013) {
                 console.error('Permission error: The bot does not have permission to kick members.');
             } else {
