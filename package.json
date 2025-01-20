@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "postinstall": "npm install"
+    "postinstall": "npm ci"  // Use npm ci for faster, more reliable installs
   },
   "keywords": ["discord", "bot", "nodejs"],
   "author": "Your Name",
@@ -15,7 +15,11 @@
   },
   "dependencies": {
     "discord.js": "^14.17.3",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "@discordjs/rest": "^2.4.2",
+    "discord-api-types": "^0.37.115",
+    "express": "^4.21.2",
+    "node-cron": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^18.0.6"
