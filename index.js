@@ -155,21 +155,25 @@ client.on('messageCreate', async (message) => {
   }
 
 client.on('guildMemberAdd', async (member) => {
+  console.log(`New member joined: ${member.user.tag}`);  // Check if this logs to the console
+  
   try {
-    // Get the account creation date
     const accountCreatedAt = member.user.createdAt;
-
-    // Get the current date and check if the account is older than 1 day
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1); // 1 day ago
 
     if (accountCreatedAt > oneDayAgo) {
-      // The account is too new (less than 1 day old)
-      
-      // Kick the user from the server
-      await member.kick();
+      console.log(`${member.user.tag} has an account younger than 1 day.`);
 
-      // Send a DM to the user explaining why they were kicked
+      // Try to kick the member
+      try {
+        await member.kick('Account age less than 1 day');
+        console.log(`Kicked ${member.user.tag} for being too new`);
+      } catch (error) {
+        console.error(`Error kicking member ${member.user.tag}:`, error);
+      }
+
+      // Try to send a DM
       const dmEmbed = new EmbedBuilder()
         .setTitle('Account Too New to Join')
         .setDescription(
