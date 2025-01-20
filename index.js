@@ -46,8 +46,6 @@ const wordOfTheDayChannels = {
     russian: '1327875414584201350',
 };
 
-const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
-
 // Active Quiz Tracking
 const activeQuizzes = {};
 
