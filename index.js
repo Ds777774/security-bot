@@ -155,6 +155,11 @@ client.on('messageCreate', async (message) => {
     });
   }
 
+// Event handler for when the bot is logged in and ready
+client.once('ready', () => {
+    console.log(`${client.user.tag} is online!`);
+});
+
 // Account Age Security
 const serverId = '1327875414584201347'; // Your server ID
 
@@ -199,6 +204,7 @@ client.on('guildMemberAdd', async (member) => {
         }
     }
 });
+
     if (message.content.toLowerCase() === '!quiz') {
         if (activeQuizzes[message.author.id]) {
             return message.reply('You are already taking a quiz. Please finish it first.');
