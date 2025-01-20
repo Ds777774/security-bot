@@ -1,10 +1,10 @@
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
-const { russianQuizData, germanQuizData, frenchQuizData, russianWordList, germanWordList, frenchWordList } = require('./russianData'); // Assuming you have the data in separate files
+const { russianQuizData, germanQuizData, frenchQuizData, russianWordList, germanWordList, frenchWordList } = require('./russianData');
 const { shuffleArray } = require('./utilities');
-const help = require('./commands/help'); // Assuming you have a separate help file
-const resources = require('./commands/resources'); // Assuming you have a separate resources file
+const help = require('./commands/help');
+const resources = require('./commands/resources');
 
 // Environment Variables
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
@@ -24,7 +24,7 @@ const client = new Client({
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// Express Server to Keep the Bot Alive
+// Express Server to Keep Bot Alive
 const app = express();
 app.get('/', (req, res) => {
     res.send('Bot is running!');
@@ -40,28 +40,27 @@ const embedColors = {
     default: '#1cd86c',
 };
 
-// Word of the Day Channels and Schedule
+// Word of the Day Channels
 const wordOfTheDayChannels = {
     russian: 'YOUR_RUSSIAN_CHANNEL_ID_HERE',
     german: 'YOUR_GERMAN_CHANNEL_ID_HERE',
     french: 'YOUR_FRENCH_CHANNEL_ID_HERE',
 };
 
-// Word of the Day Schedule (Change timings if needed)
+// Word of the Day Schedule
 const wordOfTheDayTimes = {
     russian: '30 12 * * *', // 12:30 PM IST
-    german: '0 9 * * *', // 9:00 AM IST
+    german: '0 9 * * *',   // 9:00 AM IST
     french: '15 18 * * *', // 6:15 PM IST
 };
 
 // Active Quiz Tracking
 const activeQuizzes = {};
 
-// Bot Commands
+// Commands and Event Handling
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // !quiz Command
     if (message.content.toLowerCase().startsWith('!quiz')) {
         const language = message.content.split(' ')[1]?.toLowerCase();
         if (!['russian', 'german', 'french'].includes(language)) {
@@ -184,18 +183,15 @@ client.on('messageCreate', async (message) => {
         }
     }
 
-    // !help Command
     if (message.content.toLowerCase() === '!help') {
         help.execute(message);
     }
 
-    // !resources Command
     if (message.content.toLowerCase() === '!resources') {
         resources.execute(message);
     }
 });
 
-// Word of the Day Scheduler
 cron.schedule(wordOfTheDayTimes.russian, async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
     const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
@@ -216,12 +212,8 @@ cron.schedule(wordOfTheDayTimes.russian, async () => {
     timezone: 'Asia/Kolkata',
 });
 
-// Similarly for German and French Word of the Day cron tasks...
-
-// Bot Ready Event
 client.once('ready', () => {
     console.log(`${client.user.tag} is online!`);
 });
 
-// Login the Bot
 client.login(DISCORD_TOKEN);
