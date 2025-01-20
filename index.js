@@ -44,7 +44,7 @@ const embedColors = {
 const wordOfTheDayChannels = {
     russian: '1327875414584201350',
     german: '1327875414584201350',
-    french: '1327875414584201350,
+    french: '1327875414584201350',
 };
 
 // Word of the Day Schedule
