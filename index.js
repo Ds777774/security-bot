@@ -46,7 +46,7 @@ const wordOfTheDayChannels = {
     russian: '1327875414584201350',
 };
 
-const { EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 
 // Active Quiz Tracking
 const activeQuizzes = {};
@@ -87,7 +87,7 @@ client.on('messageCreate', async (message) => {
       .setFooter({ text: 'React with the corresponding flag to choose a language.' });
 
     const msg = await message.channel.send({ embeds: [resourcesPromptEmbed] });
-    
+
     // React with the available language flags
     await msg.react('🇩🇪'); // German flag
     await msg.react('🇫🇷'); // French flag
