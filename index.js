@@ -154,11 +154,17 @@ client.on('messageCreate', async (message) => {
     });
   }
 const messageTimestamps = {}; // To track message timestamps per user
-const spamThreshold = 5; // Number of messages in a short time to trigger warning
+const spamThreshold = 5; // Number of messages in a short time to trigger action
 const timeoutDuration = 3 * 60 * 1000; // 3 minutes timeout in milliseconds
-const warningDuration = 60 * 1000; // 1 minute warning duration
+const warningDuration = 60 * 1000; // 1 minute duration for warnings to expire
 const userWarnings = {}; // To track users who have been warned
 const userTimeouts = {}; // To track users who are timed out
+
+// Remove existing listeners to prevent duplicates
+client.removeAllListeners('messageCreate');
+
+// Set a reasonable listener limit
+client.setMaxListeners(20);
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return; // Ignore bot messages
@@ -178,14 +184,16 @@ client.on('messageCreate', async (message) => {
         timestamp => Date.now() - timestamp <= 60000
     );
 
-    // Check if the user has exceeded the spam threshold
+    // Check if the user has sent 5 or more messages in a short time
     if (messageTimestamps[userId].length >= spamThreshold) {
-        // If the user hasn't been warned, send a warning
+        // If the user has not been warned yet
         if (!userWarnings[userId]) {
+            // Send a warning message
             await message.reply('🚨 Warning: You are sending messages too quickly. Please slow down!');
             userWarnings[userId] = Date.now(); // Mark the user as warned
+            messageTimestamps[userId] = []; // Reset their message count after warning
         } 
-        // If the user is already warned and spams again, timeout
+        // If the user has already been warned and spams again
         else if (
             Date.now() - userWarnings[userId] < warningDuration && // Check if the warning is recent
             !userTimeouts[userId]
@@ -195,6 +203,8 @@ client.on('messageCreate', async (message) => {
                 await member.timeout(timeoutDuration, 'Spam behavior'); // Timeout the user
                 userTimeouts[userId] = Date.now(); // Mark the user as timed out
                 await message.reply('You have been timed out for 3 minutes due to repeated spamming.');
+                delete userWarnings[userId]; // Clear the warning after timeout
+                messageTimestamps[userId] = []; // Reset their message count after timeout
             } catch (err) {
                 console.error('Error while timing out the user:', err);
             }
