@@ -159,7 +159,7 @@ client.on('messageCreate', async (message) => {
 });
 
 // Word of the Day Schedules
-cron.schedule('07 11 * * *', async () => {
+cron.schedule('53 11 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.german);
     const randomWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
     const embed = new EmbedBuilder()
@@ -180,7 +180,7 @@ cron.schedule('07 11 * * *', async () => {
 });
 
 // Repeat for French and Russian (adjust times)
-cron.schedule('08 11 * * *', async () => {
+cron.schedule('53 11 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.french);
     const randomWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
     const embed = new EmbedBuilder()
@@ -201,7 +201,7 @@ cron.schedule('08 11 * * *', async () => {
 });
 
 // Russian
-cron.schedule('09 11 * * *', async () => {
+cron.schedule('53 11 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
     const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
     const embed = new EmbedBuilder()
