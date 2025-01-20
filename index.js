@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
-const { russianQuizData, russianWordList } = require('./russianData');
+const { russianQuizData, germanQuizData, frenchQuizData, russianWordList, germanWordList, frenchWordList } = require('./languageData');
 const { shuffleArray } = require('./utilities');
 
 // Environment Variables
@@ -33,11 +33,17 @@ app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 // Embed Colors
 const embedColors = {
     russian: '#7907ff',
-    default: '#87CEEB',
+    german: '#f4ed09',
+    french: '#09ebf6',
+    default: '#1cd86c',
 };
 
-// Word of the Day Channel (Replace with actual channel ID)
-const wordOfTheDayChannel = 'YOUR_CHANNEL_ID_HERE';
+// Word of the Day Channels (Replace with actual channel IDs)
+const wordOfTheDayChannels = {
+    russian: 'YOUR_RUSSIAN_CHANNEL_ID_HERE',
+    german: 'YOUR_GERMAN_CHANNEL_ID_HERE',
+    french: 'YOUR_FRENCH_CHANNEL_ID_HERE',
+};
 
 // Active Quiz Tracking
 const activeQuizzes = {};
@@ -46,36 +52,21 @@ const activeQuizzes = {};
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // Help Command
-    if (message.content.toLowerCase() === '!help') {
-        const helpEmbed = new EmbedBuilder()
-            .setTitle('Quiz Rules')
-            .setDescription(
-                'Here are the rules for the Russian Vocabulary Quiz:\n\n' +
-                '1. Use **!quiz** to start the quiz.\n' +
-                '2. Choose your level by reacting to the options:\n   🇦: A1, 🇧: A2, 🇨: B1, 🇩: B2, 🇪: C1, 🇫: C2.\n' +
-                '3. The bot will ask **5 questions** from the selected level.\n' +
-                '4. Each question has **4 options (A, B, C, D)**.\n' +
-                '5. You have **1 minute** to answer each question.\n' +
-                '6. Your final result will include your score, correct answers, and detailed feedback.'
-            )
-            .setColor(embedColors.russian)
-            .setFooter({ text: 'Type !quiz to begin the quiz. Good luck!' });
-
-        await message.channel.send({ embeds: [helpEmbed] });
-        return;
-    }
-
     // Quiz Command
-    if (message.content.toLowerCase() === '!quiz') {
+    if (message.content.toLowerCase().startsWith('!quiz')) {
+        const language = message.content.split(' ')[1]?.toLowerCase();
+        if (!['russian', 'german', 'french'].includes(language)) {
+            return message.channel.send('Please specify a valid language: `!quiz russian`, `!quiz german`, or `!quiz french`.');
+        }
+
         if (activeQuizzes[message.author.id]) {
             return message.reply('You are already taking a quiz. Please finish it first.');
         }
 
         const levelEmbed = new EmbedBuilder()
-            .setTitle('Choose Your Level')
+            .setTitle(`Choose Your Level for the ${language.charAt(0).toUpperCase() + language.slice(1)} Quiz`)
             .setDescription('React to select your level:\n\n🇦: A1\n🇧: A2\n🇨: B1\n🇩: B2\n🇪: C1\n🇫: C2')
-            .setColor(embedColors.russian);
+            .setColor(embedColors[language]);
 
         const levelMessage = await message.channel.send({ embeds: [levelEmbed] });
         const levelEmojis = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫'];
@@ -99,7 +90,8 @@ client.on('messageCreate', async (message) => {
             const selectedLevel = levels[levelEmojis.indexOf(reaction.emoji.name)];
             await levelMessage.delete();
 
-            const questions = russianQuizData[selectedLevel] || [];
+            const quizData = language === 'russian' ? russianQuizData : language === 'german' ? germanQuizData : frenchQuizData;
+            const questions = quizData[selectedLevel] || [];
             shuffleArray(questions);
             const questionsToAsk = questions.slice(0, 5);
 
@@ -107,18 +99,18 @@ client.on('messageCreate', async (message) => {
                 return message.channel.send('No questions available for this level.');
             }
 
-            activeQuizzes[message.author.id] = { language: 'Russian', level: selectedLevel, score: 0, detailedResults: [] };
+            activeQuizzes[message.author.id] = { language, level: selectedLevel, score: 0, detailedResults: [] };
 
             for (const question of questionsToAsk) {
                 const embed = new EmbedBuilder()
-                    .setTitle(`**Russian Vocabulary Quiz**`)
+                    .setTitle(`**${language.charAt(0).toUpperCase() + language.slice(1)} Vocabulary Quiz**`)
                     .setDescription(`What is the English meaning of "${question.word}"?`)
                     .addFields(question.options.map((opt, i) => ({
                         name: `Option ${String.fromCharCode(65 + i)}`,
                         value: opt,
                         inline: true,
                     })))
-                    .setColor(embedColors.russian)
+                    .setColor(embedColors[language])
                     .setFooter({ text: 'React with the emoji corresponding to your answer.' });
 
                 const quizMessage = await message.channel.send({ embeds: [embed] });
@@ -155,7 +147,7 @@ client.on('messageCreate', async (message) => {
             const resultEmbed = new EmbedBuilder()
                 .setTitle('Quiz Results')
                 .setDescription(`You scored ${result.score} out of 5 in level ${result.level}!`)
-                .setColor(embedColors.russian)
+                .setColor(embedColors[language])
                 .addFields(
                     { name: 'Level', value: result.level, inline: false },
                     {
@@ -181,20 +173,24 @@ client.on('messageCreate', async (message) => {
 
 // Word of the Day Scheduler
 cron.schedule('30 12 * * *', async () => {
-    const channel = await client.channels.fetch(wordOfTheDayChannel);
-    const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
+    for (const [language, channelId] of Object.entries(wordOfTheDayChannels)) {
+        const channel = await client.channels.fetch(channelId);
+        const wordList =
+            language === 'russian' ? russianWordList : language === 'german' ? germanWordList : frenchWordList;
+        const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
 
-    const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day**')
-        .setDescription(`**Word:** ${randomWord.word}`)
-        .addFields(
-            { name: 'Meaning', value: randomWord.meaning },
-            { name: 'Plural', value: randomWord.plural },
-            { name: 'Examples', value: randomWord.examples }
-        )
-        .setColor(embedColors.russian);
+        const embed = new EmbedBuilder()
+            .setTitle(`**Word of the Day (${language.charAt(0).toUpperCase() + language.slice(1)})**`)
+            .setDescription(`**Word:** ${randomWord.word}`)
+            .addFields(
+                { name: 'Meaning', value: randomWord.meaning },
+                { name: 'Plural', value: randomWord.plural },
+                { name: 'Examples', value: randomWord.examples }
+            )
+            .setColor(embedColors[language]);
 
-    await channel.send({ embeds: [embed] });
+        await channel.send({ embeds: [embed] });
+    }
 }, {
     scheduled: true,
     timezone: 'Asia/Kolkata',
