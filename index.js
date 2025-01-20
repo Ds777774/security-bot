@@ -42,16 +42,16 @@ const embedColors = {
 
 // Word of the Day Channels
 const wordOfTheDayChannels = {
-    russian: '1330850741744697344',
-    german: '1330850741744697344',
-    french: '1330850741744697344',
+    russian: '1327875414584201350',
+    german: '1327875414584201350',
+    french: '1327875414584201350,
 };
 
 // Word of the Day Schedule
 const wordOfTheDayTimes = {
-    russian: '50 21 * * *', // 12:30 PM IST
-    german: '47 21 * * *',   // 9:00 AM IST
-    french: '47 21 * * *', // 6:15 PM IST
+    russian: '00 22 * * *', // 12:30 PM IST
+    german: '00 22 * * *',   // 9:00 AM IST
+    french: '00 22 * * *', // 6:15 PM IST
 };
 
 // Active Quiz Tracking
