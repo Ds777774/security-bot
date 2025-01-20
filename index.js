@@ -3,6 +3,7 @@ const activeQuizzes = {};
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const cron = require('node-cron');
+// Import quiz data
 const { russianQuizData, germanQuizData, frenchQuizData, russianWordList, germanWordList, frenchWordList } = require('./russianData');
 const { shuffleArray } = require('./utilities');
 const help = require('./commands/help');
