@@ -178,15 +178,18 @@ client.on('messageCreate', async (message) => {
         timestamp => Date.now() - timestamp <= 60000
     );
 
-    // If the user sends 5 or more messages in the last minute
+    // Check if the user has exceeded the spam threshold
     if (messageTimestamps[userId].length >= spamThreshold) {
-        // Check if the user has been warned before
+        // If the user hasn't been warned, send a warning
         if (!userWarnings[userId]) {
-            // Send a warning message to the user
             await message.reply('🚨 Warning: You are sending messages too quickly. Please slow down!');
-            userWarnings[userId] = Date.now(); // Record the time of the warning
-        } else if (!userTimeouts[userId]) {
-            // Timeout the user for 3 minutes if they continue spamming after the warning
+            userWarnings[userId] = Date.now(); // Mark the user as warned
+        } 
+        // If the user is already warned and spams again, timeout
+        else if (
+            Date.now() - userWarnings[userId] < warningDuration && // Check if the warning is recent
+            !userTimeouts[userId]
+        ) {
             try {
                 const member = await message.guild.members.fetch(userId); // Fetch the member object
                 await member.timeout(timeoutDuration, 'Spam behavior'); // Timeout the user
@@ -203,16 +206,16 @@ client.on('messageCreate', async (message) => {
 setInterval(() => {
     const now = Date.now();
 
-    // Reset user warnings after 1 minute
+    // Reset user warnings after the warning duration
     for (const userId in userWarnings) {
-        if (userWarnings[userId] && now - userWarnings[userId] >= warningDuration) {
+        if (now - userWarnings[userId] >= warningDuration) {
             delete userWarnings[userId];
         }
     }
 
     // Reset user timeouts after the timeout duration
     for (const userId in userTimeouts) {
-        if (userTimeouts[userId] && now - userTimeouts[userId] >= timeoutDuration) {
+        if (now - userTimeouts[userId] >= timeoutDuration) {
             delete userTimeouts[userId];
         }
     }
