@@ -181,56 +181,53 @@ client.on('messageCreate', async (message) => {
         }
     }
 });
-// Word of the Day System (Daily at 12:30 PM IST)
-cron.schedule('30 12 * * *', async () => {
-    const germanWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
-    const frenchWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
-    const russianWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
+// Word of the Day Setup
+const sendWordOfTheDay = async (language) => {
+    const wordChannel = await client.channels.fetch(wordOfTheDayChannels[language]);
 
-    const germanChannel = await client.channels.fetch(wordOfTheDayChannels.german);
-    const frenchChannel = await client.channels.fetch(wordOfTheDayChannels.french);
-    const russianChannel = await client.channels.fetch(wordOfTheDayChannels.russian);
+    if (!wordChannel) {
+        console.error(`Channel for ${language} not found.`);
+        return;
+    }
 
-    const germanEmbed = new EmbedBuilder()
-        .setTitle('German Word of the Day')
-        .setDescription(`**${germanWord.word}**\nMeaning: ${germanWord.meaning}`)
-        .setColor(embedColors.german);
-    const frenchEmbed = new EmbedBuilder()
-        .setTitle('French Word of the Day')
-        .setDescription(`**${frenchWord.word}**\nMeaning: ${frenchWord.meaning}`)
-        .setColor(embedColors.french);
-    const russianEmbed = new EmbedBuilder()
-        .setTitle('Russian Word of the Day')
-        .setDescription(`**${russianWord.word}**\nMeaning: ${russianWord.meaning}`)
-        .setColor(embedColors.russian);
+    const wordList = {
+        german: germanWordList,
+        french: frenchWordList,
+        russian: russianWordList,
+    }[language];
 
-    await germanChannel.send({ embeds: [germanEmbed] });
-    await frenchChannel.send({ embeds: [frenchEmbed] });
-    await russianChannel.send({ embeds: [russianEmbed] });
+    const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
+
+    const wordEmbed = new EmbedBuilder()
+        .setTitle(`Word of the Day - ${language.charAt(0).toUpperCase() + language.slice(1)}`)
+        .setDescription(`**${randomWord.word}**\n\n${randomWord.translation}`)
+        .setColor(embedColors[language]);
+
+    await wordChannel.send({ embeds: [wordEmbed] });
+};
+
+// Schedule Word of the Day
+cron.schedule('30 12 * * *', () => {
+    sendWordOfTheDay('german');
+    sendWordOfTheDay('french');
+    sendWordOfTheDay('russian');
 });
 
-// Daily Quiz Announcement System (Daily at 9:00 AM IST)
-cron.schedule('0 9 * * *', async () => {
-    const germanChannel = await client.channels.fetch(wordOfTheDayChannels.german);
-    const frenchChannel = await client.channels.fetch(wordOfTheDayChannels.french);
-    const russianChannel = await client.channels.fetch(wordOfTheDayChannels.russian);
-
-    const germanQuizEmbed = new EmbedBuilder()
-        .setTitle('German Quiz is Live!')
-        .setDescription('React with 🇩 to start the quiz!')
-        .setColor(embedColors.german);
-    const frenchQuizEmbed = new EmbedBuilder()
-        .setTitle('French Quiz is Live!')
-        .setDescription('React with 🇫 to start the quiz!')
-        .setColor(embedColors.french);
-    const russianQuizEmbed = new EmbedBuilder()
-        .setTitle('Russian Quiz is Live!')
-        .setDescription('React with 🇷 to start the quiz!')
-        .setColor(embedColors.russian);
-
-    await germanChannel.send({ embeds: [germanQuizEmbed] });
-    await frenchChannel.send({ embeds: [frenchQuizEmbed] });
-    await russianChannel.send({ embeds: [russianQuizEmbed] });
+// Bot Login
+client.once('ready', () => {
+    console.log('Bot is logged in and ready!');
 });
 
 client.login(DISCORD_TOKEN);
+
+// Utilities (helpers)
+const shuffleArray = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+};
+
+const clearActiveQuiz = (activeQuizzes, userId) => {
+    delete activeQuizzes[userId];
+};
