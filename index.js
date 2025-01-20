@@ -154,28 +154,31 @@ client.on('messageCreate', async (message) => {
             }
 
             const result = activeQuizzes[message.author.id];
-            clearActiveQuiz(activeQuizzes, message.author.id);
 
-            const resultEmbed = new EmbedBuilder()
-                .setTitle('Quiz Results')
-                .setDescription(`You scored ${result.score} out of 5!`)
-                .setColor(embedColors[selectedLanguage])
-                .addFields(
-                    { name: 'Level', value: result.level, inline: false },
-                    {
-                        name: 'Detailed Results',
-                        value: result.detailedResults
-                            .map(
-                                (res) =>
-                                    `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${
-                                        res.isCorrect ? '✅' : '❌'
-                                    }`
-                            )
-                            .join('\n\n'),
-                    }
-                );
+// Clearing the active quiz after the result is displayed
+clearActiveQuiz(activeQuizzes, message.author.id);
 
-            await message.channel.send({ embeds: [resultEmbed] });
+const resultEmbed = new EmbedBuilder()
+    .setTitle('Quiz Results')
+    .setDescription(`You scored ${result.score} out of 5 in level ${result.level} (${result.language.toUpperCase()})!`)
+    .setColor(embedColors[selectedLanguage]) // Make sure 'selectedLanguage' is available in this context
+    .addFields(
+        { name: 'Level', value: result.level, inline: false },
+        { name: 'Language', value: result.language.charAt(0).toUpperCase() + result.language.slice(1), inline: false }, // Added language
+        {
+            name: 'Detailed Results',
+            value: result.detailedResults
+                .map(
+                    (res) =>
+                        `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${
+                            res.isCorrect ? '✅' : '❌'
+                        }`
+                )
+                .join('\n\n'),
+        }
+    );
+
+await message.channel.send({ embeds: [resultEmbed] });
         } catch (error) {
             console.error(error);
             return message.channel.send('An error occurred. Please try again.');
