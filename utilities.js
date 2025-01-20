@@ -1,7 +1,5 @@
-// utilities.js
-
 /**
- * Shuffles an array in place.
+ * Shuffles an array in place using the Fisher-Yates algorithm.
  * @param {Array} array - The array to shuffle.
  */
 function shuffleArray(array) {
@@ -17,10 +15,51 @@ function shuffleArray(array) {
  * @param {String} userId - The ID of the user whose quiz data to clear.
  */
 function clearActiveQuiz(activeQuizzes, userId) {
-    delete activeQuizzes[userId];
+    if (activeQuizzes[userId]) {
+        delete activeQuizzes[userId];
+    }
+}
+
+/**
+ * Tracks the active quiz for a user.
+ * @param {Object} activeQuizzes - The object tracking active quizzes.
+ * @param {String} userId - The ID of the user taking the quiz.
+ * @param {Object} quizData - The quiz data for the user.
+ */
+function trackActiveQuiz(activeQuizzes, userId, quizData) {
+    activeQuizzes[userId] = quizData;
+}
+
+/**
+ * Generates a random item from an array.
+ * @param {Array} array - The array to select a random item from.
+ * @returns {*} A random item from the array.
+ */
+function getRandomItem(array) {
+    if (!Array.isArray(array) || array.length === 0) {
+        throw new Error('Invalid array provided for random selection.');
+    }
+    return array[Math.floor(Math.random() * array.length)];
+}
+
+/**
+ * Formats a word's details into an embed-friendly format.
+ * @param {Object} word - The word object containing details.
+ * @returns {Array} An array of fields for an embed.
+ */
+function formatWordDetails(word) {
+    return [
+        { name: '**Meaning**', value: word.meaning, inline: false },
+        { name: '**Plural**', value: word.plural || 'N/A', inline: false },
+        { name: '**Indefinite Article**', value: word.indefinite || 'N/A', inline: false },
+        { name: '**Definite Article**', value: word.definite || 'N/A', inline: false }
+    ];
 }
 
 module.exports = {
     shuffleArray,
     clearActiveQuiz,
+    trackActiveQuiz,
+    getRandomItem,
+    formatWordDetails
 };
