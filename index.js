@@ -158,12 +158,10 @@ if (message.content.toLowerCase() === '!resources') {
 }
 
     if (message.content.toLowerCase() === '!dead') {
-    if (activeQuizzes[message.author.id]) {
-        return message.reply('You are already taking a quiz. Please finish it first.');
-    }
-
-    const languageEmbed = new EmbedBuilder()
-        .setTitle('Choose Your Quiz Language')
+    (async () => {
+        if (activeQuizzes[message.author.id]) {
+            return message.reply('You are already taking a quiz. Please finish it first.');
+        }
         .setDescription('React to select your language:\n\n🇩: German\n🇫: French\n🇷: Russian')
         .setColor(embedColors.default);
 
