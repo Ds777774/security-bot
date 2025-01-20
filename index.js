@@ -143,6 +143,13 @@ client.on('messageCreate', async (message) => {
                     activeQuizzes[message.author.id].score++;
                 }
 
+                activeQuizzes[message.author.id].detailedResults.push({
+                    word: question.word,
+                    userAnswer: quizReaction ? question.options[['🇦', '🇧', '🇨', '🇩'].indexOf(quizReaction.emoji.name)].split(': ')[1] : 'No Answer',
+                    correct: question.meaning,
+                    isCorrect: quizReaction && quizReaction.emoji.name === question.correct,
+                });
+
                 await quizMessage.delete();
             }
 
@@ -152,82 +159,95 @@ client.on('messageCreate', async (message) => {
             const resultEmbed = new EmbedBuilder()
                 .setTitle('Quiz Results')
                 .setDescription(`You scored ${result.score} out of 5!`)
+                .setColor(embedColors[selectedLanguage])
                 .addFields(
                     { name: 'Level', value: result.level, inline: false },
-                    { name: 'Language', value: result.language, inline: false }
-                )
-                .setColor(embedColors[selectedLanguage]);
-
-            await message.channel.send({ embeds: [resultEmbed] });
-
-            const detailedResultEmbed = new EmbedBuilder()
-                .setTitle('Detailed Results')
-                .setColor(embedColors[selectedLanguage])
-                .setDescription(
-                    result.detailedResults
-                        .map(
-                            (res) =>
-                                `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${
-                                    res.isCorrect ? '✅' : '❌'
-                                }`
-                        )
-                        .join('\n\n')
+                    {
+                        name: 'Detailed Results',
+                        value: result.detailedResults
+                            .map(
+                                (res) =>
+                                    `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${
+                                        res.isCorrect ? '✅' : '❌'
+                                    }`
+                            )
+                            .join('\n\n'),
+                    }
                 );
 
-            await message.channel.send({ embeds: [detailedResultEmbed] });
+            await message.channel.send({ embeds: [resultEmbed] });
         } catch (error) {
             console.error(error);
             return message.channel.send('An error occurred. Please try again.');
         }
     }
 });
-// Word of the Day Setup
-const sendWordOfTheDay = async (language) => {
-    const wordChannel = await client.channels.fetch(wordOfTheDayChannels[language]);
 
-    if (!wordChannel) {
-        console.error(`Channel for ${language} not found.`);
-        return;
-    }
+// Word of the Day Schedules
+cron.schedule('53 11 * * *', async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.german);
+    const randomWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (GERMAN)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: '**Meaning**', value: randomWord.meaning },
+            { name: '**Plural**', value: randomWord.plural },
+            { name: '**Indefinite Article**', value: randomWord.indefinite },
+            { name: '**Definite Article**', value: randomWord.definite }
+        )
+        .setColor(embedColors.german);
 
-    const wordList = {
-        german: germanWordList,
-        french: frenchWordList,
-        russian: russianWordList,
-    }[language];
-
-    const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
-
-    const wordEmbed = new EmbedBuilder()
-        .setTitle(`Word of the Day - ${language.charAt(0).toUpperCase() + language.slice(1)}`)
-        .setDescription(`**${randomWord.word}**\n\n${randomWord.translation}`)
-        .setColor(embedColors[language]);
-
-    await wordChannel.send({ embeds: [wordEmbed] });
-};
-
-// Schedule Word of the Day
-cron.schedule('30 12 * * *', () => {
-    sendWordOfTheDay('german');
-    sendWordOfTheDay('french');
-    sendWordOfTheDay('russian');
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
 });
 
-// Bot Login
+// Repeat for French and Russian (adjust times)
+cron.schedule('53 11 * * *', async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.french);
+    const randomWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (FRENCH)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: '**Meaning**', value: randomWord.meaning },
+            { name: '**Plural**', value: randomWord.plural },
+            { name: '**Indefinite Article**', value: randomWord.indefinite },
+            { name: '**Definite Article**', value: randomWord.definite }
+        )
+        .setColor(embedColors.french);
+
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
+// Russian
+cron.schedule('53 11 * * *', async () => {
+    const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
+    const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
+    const embed = new EmbedBuilder()
+        .setTitle('**Word of the Day (RUSSIAN)**')
+        .setDescription(`**Word:** ${randomWord.word}`)
+        .addFields(
+            { name: '**Meaning**', value: randomWord.meaning },
+            { name: '**Plural**', value: randomWord.plural },
+            { name: '**Indefinite Article**', value: randomWord.indefinite },
+            { name: '**Definite Article**', value: randomWord.definite }
+        )
+        .setColor(embedColors.russian);
+
+    await channel.send({ embeds: [embed] });
+}, {
+    scheduled: true,
+    timezone: 'Asia/Kolkata',
+});
+
 client.once('ready', () => {
-    console.log('Bot is logged in and ready!');
+    console.log(`${client.user.tag} is online!`);
 });
 
 client.login(DISCORD_TOKEN);
-
-// Utilities (helpers)
-const shuffleArray = (array) => {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-};
-
-const clearActiveQuiz = (activeQuizzes, userId) => {
-    delete activeQuizzes[userId];
-};
