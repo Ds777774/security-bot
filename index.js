@@ -74,23 +74,25 @@ client.on('messageCreate', async (message) => {
 
   // Resources Command
 if (message.content.toLowerCase() === '!resources') {
-    const resourcesPromptEmbed = new EmbedBuilder()
-        .setTitle('Choose a Language for Resources')
-        .setDescription(
-            'Please select the language for which you want resources:\n\n' +
-            '🇩🇪 German\n' +
-            '🇫🇷 French\n' +
-            '🇷🇺 Russian'
-        )
-        .setColor('#3498db')
-        .setFooter({ text: 'React with the corresponding flag to choose a language.' });
+    (async () => {
+        const resourcesPromptEmbed = new EmbedBuilder()
+            .setTitle('Choose a Language for Resources')
+            .setDescription(
+                'Please select the language for which you want resources:\n\n' +
+                '🇩🇪 German\n' +
+                '🇫🇷 French\n' +
+                '🇷🇺 Russian'
+            )
+            .setColor('#3498db')
+            .setFooter({ text: 'React with the corresponding flag to choose a language.' });
 
-    const msg = await message.channel.send({ embeds: [resourcesPromptEmbed] });
+        // Send the embed message
+        const msg = await message.channel.send({ embeds: [resourcesPromptEmbed] });
 
-    // React with the available language flags
-    await msg.react('🇩🇪'); // German flag
-    await msg.react('🇫🇷'); // French flag
-    await msg.react('🇷🇺'); // Russian flag
+        // React with the available language flags
+        await msg.react('🇩🇪'); // German flag
+        await msg.react('🇫🇷'); // French flag
+        await msg.react('🇷🇺'); // Russian flag
 
     // Create a reaction collector for the user to choose the language
     const filter = (reaction, user) => ['🇩🇪', '🇫🇷', '🇷🇺'].includes(reaction.emoji.name) && !user.bot;
