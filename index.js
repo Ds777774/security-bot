@@ -49,9 +49,9 @@ const wordOfTheDayChannels = {
 
 // Word of the Day Schedule
 const wordOfTheDayTimes = {
-    russian: '30 12 * * *', // 12:30 PM IST
-    german: '0 9 * * *',   // 9:00 AM IST
-    french: '15 18 * * *', // 6:15 PM IST
+    russian: '37 21 * * *', // 12:30 PM IST
+    german: '37 21 * * *',   // 9:00 AM IST
+    french: '37 21 * * *', // 6:15 PM IST
 };
 
 // Active Quiz Tracking
