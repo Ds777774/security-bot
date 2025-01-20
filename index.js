@@ -290,11 +290,11 @@ await message.channel.send({ embeds: [resultEmbed] });
 });
 
 // Word of the Day Schedules
-cron.schedule('11 15 * * *', async () => {
+cron.schedule('16 15 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.german);
     const randomWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
     const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day (GERMAN)**')
+        .setTitle('**Word of the Day**')
         .setDescription(`**Word:** ${randomWord.word}`)
         .addFields(
             { name: '**Meaning**', value: randomWord.meaning },
@@ -311,11 +311,11 @@ cron.schedule('11 15 * * *', async () => {
 });
 
 // Repeat for French and Russian (adjust times)
-cron.schedule('11 15 * * *', async () => {
+cron.schedule('16 15 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.french);
     const randomWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
     const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day (FRENCH)**')
+        .setTitle('**Word of the Day**')
         .setDescription(`**Word:** ${randomWord.word}`)
         .addFields(
             { name: '**Meaning**', value: randomWord.meaning },
@@ -332,11 +332,11 @@ cron.schedule('11 15 * * *', async () => {
 });
 
 // Russian
-cron.schedule('11 15 * * *', async () => {
+cron.schedule('16 15 * * *', async () => {
     const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
     const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
     const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day (RUSSIAN)**')
+        .setTitle('**Word of the Day**')
         .setDescription(`**Word:** ${randomWord.word}`)
         .addFields(
             { name: '**Meaning**', value: randomWord.meaning },
