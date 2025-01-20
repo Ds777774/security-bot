@@ -5,7 +5,7 @@
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [array[i], array[j]] = [array[j], array[i]]; // Swap elements
     }
 }
 
@@ -35,7 +35,7 @@ function trackActiveQuiz(activeQuizzes, userId, quizData) {
 }
 
 /**
- * Generates a random item from an array.
+ * Generates a random item from an array (e.g., "Word of the Day").
  * @param {Array} array - The array to select a random item from.
  * @returns {*} A random item from the array.
  */
@@ -55,7 +55,7 @@ function formatWordDetails(word) {
     if (!word || typeof word !== 'object') {
         throw new Error('Invalid word object');
     }
-    
+
     return [
         { name: '**Meaning**', value: word.meaning || 'N/A', inline: false },
         { name: '**Plural**', value: word.plural || 'N/A', inline: false },
@@ -64,10 +64,44 @@ function formatWordDetails(word) {
     ];
 }
 
+/**
+ * Handles the "Word of the Day" logic.
+ * @param {Array} wordList - List of words to choose from for the Word of the Day.
+ * @param {String} language - The language of the word.
+ * @returns {Object} An object containing the word and its details.
+ */
+function getWordOfTheDay(wordList, language) {
+    const word = getRandomItem(wordList);
+    return {
+        word,
+        language,
+        formattedDetails: formatWordDetails(word),
+    };
+}
+
+/**
+ * Sends a Word of the Day message.
+ * @param {Object} message - The Discord message object.
+ * @param {Array} wordList - List of words for Word of the Day.
+ * @param {String} language - The language of the word.
+ */
+async function sendWordOfTheDay(message, wordList, language) {
+    const wordOfTheDay = getWordOfTheDay(wordList, language);
+    const embed = new EmbedBuilder()
+        .setTitle(`Word of the Day - ${wordOfTheDay.language.toUpperCase()}`)
+        .setDescription(`Today's word is **${wordOfTheDay.word.word}**`)
+        .addFields(wordOfTheDay.formattedDetails)
+        .setColor(embedColors[wordOfTheDay.language]);
+
+    await message.channel.send({ embeds: [embed] });
+}
+
 module.exports = {
     shuffleArray,
     clearActiveQuiz,
     trackActiveQuiz,
     getRandomItem,
-    formatWordDetails
+    formatWordDetails,
+    getWordOfTheDay,
+    sendWordOfTheDay
 };
