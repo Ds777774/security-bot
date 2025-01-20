@@ -1,369 +1,193 @@
-const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
-const express = require('express');
-const cron = require('node-cron');
-const { germanQuizData, germanWordList } = require('./germanData');
-const { frenchQuizData, frenchWordList } = require('./frenchData');
-const { russianQuizData, russianWordList } = require('./russianData');
-const { shuffleArray, clearActiveQuiz } = require('./utilities');
+const { Client, Intents, MessageEmbed } = require('discord.js');
+const germanData = require('./germanData');
+const frenchData = require('./frenchData');
+const russianData = require('./russianData');
 
+// Environment variable for bot token
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
-if (!DISCORD_TOKEN) {
-    console.error('Error: DISCORD_TOKEN environment variable is not set.');
-    process.exit(1);
-}
+// Create a new Discord client
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMessageReactions,
-    ],
-    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
-});
-
-// Express server to keep the bot alive
-const app = express();
-app.get('/', (req, res) => {
-    res.send('Bot is running!');
-});
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
-// Embed Colors for Different Languages
-const embedColors = {
-    german: '#f4ed09',
-    french: '#09ebf6',
-    russian: '#7907ff',
-    default: '#87CEEB',
-};
-
-// Word of the Day Channels
-const wordOfTheDayChannels = {
-    german: '1327875414584201350',
-    french: '1327875414584201350',
-    russian: '1327875414584201350',
-};
-
-// Active Quiz Tracking
+// Active quizzes tracker
 const activeQuizzes = {};
 
-// Start Command
-client.on('messageCreate', async (message) => {
-    // Help Command
-    if (message.content.toLowerCase() === '!help') {
-        const helpEmbed = new EmbedBuilder()
-            .setTitle('Quiz Rules')
-            .setDescription(
-                'Here are the rules for the German Vocabulary Quiz:\n\n' +
-                '1. Use **!quiz** to begin the quiz.\n' +
-                '2. Select your level by reacting to the options:\n   🇦: A1, 🇧: A2, 🇨: B1, 🇩: B2, 🇪: C1, 🇫: C2.\n' +
-                '3. The bot will ask **5 questions** from the selected level.\n' +
-                '4. Each question has **4 options (A, B, C, D)**.\n' +
-                '5. You have **1 minute** to answer each question.\n' +
-                '6. Your final result will include your score, correct answers, and your level.'
-            )
-            .setColor('#f4ed09')
-            .setFooter({ text: 'Type !quiz to begin the quiz. Good luck!' });
+// Channel ID for Word of the Day
+const wordOfTheDayChannelId = '1327875414584201350'; // Replace with your channel ID
 
-        await message.channel.send({ embeds: [helpEmbed] });
-        return; // Stop further execution for this command
-    }
-});
-
-  // Resources Command
-if (message.content.toLowerCase() === '!resources') {
-    (async () => {
-        const resourcesPromptEmbed = new EmbedBuilder()
-            .setTitle('Choose a Language for Resources')
-            .setDescription(
-                'Please select the language for which you want resources:\n\n' +
-                '🇩🇪 German\n' +
-                '🇫🇷 French\n' +
-                '🇷🇺 Russian'
-            )
-            .setColor('#3498db')
-            .setFooter({ text: 'React with the corresponding flag to choose a language.' });
-
-        // Send the embed message
-        const msg = await message.channel.send({ embeds: [resourcesPromptEmbed] });
-
-        // React with the available language flags
-        await msg.react('🇩🇪'); // German flag
-        await msg.react('🇫🇷'); // French flag
-        await msg.react('🇷🇺'); // Russian flag
-
-    // Create a reaction collector for the user to choose the language
-    const filter = (reaction, user) => ['🇩🇪', '🇫🇷', '🇷🇺'].includes(reaction.emoji.name) && !user.bot;
-    const collector = msg.createReactionCollector({ filter, time: 60000 }); // Collector for 60 seconds
-
-    collector.on('collect', async (reaction, user) => {
-        // Remove the user's reaction
-        await reaction.users.remove(user);
-
-        // Delete the original prompt message
-        await msg.delete();
-
-        // Send the resources based on the selected language
-        let resourcesEmbed;
-
-        if (reaction.emoji.name === '🇩🇪') {
-            resourcesEmbed = new EmbedBuilder()
-                .setTitle('German Learning Resources')
-                .setDescription(
-                    '**YouTube Channel:**\n' +
-                    '[Learn German Original](https://youtube.com/@learngermanoriginal?si=6tqhbeRjhkGSCW6z)\n\n' +
-                    '**Book Recommendations:**\n' +
-                    'Made German Simple by Arnold\n\n' +
-                    '**Vocabulary PDF:**\n' +
-                    '[Download PDF](https://drive.google.com/file/d/1I73hvUDb3uvVNP98oAEbOvVYGLv1NlKO/view?usp=drivesdk)'
-                )
-                .setColor('#f4ed09');
-        } else if (reaction.emoji.name === '🇫🇷') {
-            resourcesEmbed = new EmbedBuilder()
-                .setTitle('French Learning Resources')
-                .setDescription(
-                    '**YouTube Channel:**\n' +
-                    '[LingoNi French](https://youtube.com/@lingonifrench?si=FcmmO68Onp0qGaat)\n\n' +
-                    '**Vocabulary PDF:**\n' +
-                    '[Download PDF](https://drive.google.com/file/d/1I4p26ddR2Wy_XsB2dtX_5uwvsjYq69So/view?usp=drivesdk)'
-                )
-                .setColor('#3498db');
-        } else if (reaction.emoji.name === '🇷🇺') {
-            resourcesEmbed = new EmbedBuilder()
-                .setTitle('Russian Learning Resources')
-                .setDescription(
-                    '**YouTube Channel:**\n' +
-                    '[Real Russian Club](https://youtube.com/@realrussianclub?si=vjrr0SdOL-In-0lN)\n\n' +
-                    '**Vocabulary PDF:**\n' +
-                    '[Download PDF](https://drive.google.com/file/d/1I9i72NHcSHIrBEHdxMH3vGkwZVnVcGZ5/view?usp=drivesdk)'
-                )
-                .setColor('#e74c3c');
-        }
-
-        // Send the resources
-        await message.channel.send({ embeds: [resourcesEmbed] });
-
-        // Stop the collector
-        collector.stop();
-    });
-
-    collector.on('end', (collected, reason) => {
-        if (reason === 'time') {
-            msg.delete();
-            message.channel.send('Time is up! Please try again with the !resources command.');
-        }
-    });
-}
-
-    if (message.content.toLowerCase() === '!dead') {
-    (async () => {
-        if (activeQuizzes[message.author.id]) {
-            return message.reply('You are already taking a quiz. Please finish it first.');
-        }
-        .setDescription('React to select your language:\n\n🇩: German\n🇫: French\n🇷: Russian')
-        .setColor(embedColors.default);
-
-    const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
-    const languageEmojis = ['🇩', '🇫', '🇷'];
-    const languages = ['german', 'french', 'russian'];
-
-    for (const emoji of languageEmojis) {
-        await languageMessage.react(emoji);
-    }
-
-    const filter = (reaction, user) => languageEmojis.includes(reaction.emoji.name) && user.id === message.author.id;
-
-    try {
-        const collected = await languageMessage.awaitReactions({ filter, max: 1, time: 15000 });
-        const reaction = collected.first();
-
-        if (!reaction) {
-            return message.channel.send('No language selected. Quiz cancelled.');
-        }
-
-        const selectedLanguage = languages[languageEmojis.indexOf(reaction.emoji.name)];
-        const quizData = {
-            german: germanQuizData,
-            french: frenchQuizData,
-            russian: russianQuizData,
-        }[selectedLanguage];
-
-        await languageMessage.delete();
-
-        const levelEmbed = new EmbedBuilder()
-            .setTitle('Choose Your Level')
-            .setDescription('React to select your level:\n\n🇦: A1\n🇧: A2\n🇨: B1\n🇩: B2\n🇪: C1\n🇫: C2')
-            .setColor(embedColors[selectedLanguage]);
-
-        const levelMessage = await message.channel.send({ embeds: [levelEmbed] });
-        const levelEmojis = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫'];
-        const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-
-        for (const emoji of levelEmojis) {
-            await levelMessage.react(emoji);
-        }
-
-        const levelFilter = (reaction, user) => levelEmojis.includes(reaction.emoji.name) && user.id === message.author.id;
-        const levelCollected = await levelMessage.awaitReactions({ filter: levelFilter, max: 1, time: 15000 });
-        const levelReaction = levelCollected.first();
-
-        if (!levelReaction) {
-            return message.channel.send('No level selected. Quiz cancelled.');
-        }
-
-        const selectedLevel = levels[levelEmojis.indexOf(levelReaction.emoji.name)];
-        await levelMessage.delete();
-
-        const questions = quizData[selectedLevel] || [];
-        shuffleArray(questions);
-        const questionsToAsk = questions.slice(0, 5);
-
-        if (questionsToAsk.length === 0) {
-            return message.channel.send('No questions available for this level.');
-        }
-
-        activeQuizzes[message.author.id] = { language: selectedLanguage, level: selectedLevel, score: 0, detailedResults: [] };
-
-        for (const question of questionsToAsk) {
-            const embed = new EmbedBuilder()
-                .setTitle(`**${selectedLanguage.toUpperCase()} Vocabulary Quiz**`)
-                .setDescription(`What is the English meaning of "${question.word}"?`)
-                .addFields(
-                    question.options.map((opt, index) => ({
-                        name: `Option ${String.fromCharCode(65 + index)}`,
-                        value: opt,
-                        inline: true,
-                    }))
-                )
-                .setColor(embedColors[selectedLanguage])
-                .setFooter({ text: 'React with the emoji corresponding to your answer' });
-
-            const quizMessage = await message.channel.send({ embeds: [embed] });
-            for (const emoji of ['🇦', '🇧', '🇨', '🇩']) {
-                await quizMessage.react(emoji);
-            }
-
-            const quizFilter = (reaction, user) =>
-                ['🇦', '🇧', '🇨', '🇩'].includes(reaction.emoji.name) && user.id === message.author.id;
-
-            const quizCollected = await quizMessage.awaitReactions({ filter: quizFilter, max: 1, time: 15000 });
-            const quizReaction = quizCollected.first();
-
-            if (quizReaction && quizReaction.emoji.name === question.correct) {
-                activeQuizzes[message.author.id].score++;
-            }
-
-            activeQuizzes[message.author.id].detailedResults.push({
-                word: question.word,
-                userAnswer: quizReaction
-                    ? question.options[['🇦', '🇧', '🇨', '🇩'].indexOf(quizReaction.emoji.name)]
-                    : 'No Answer',
-                correct: question.meaning,
-                isCorrect: quizReaction && quizReaction.emoji.name === question.correct,
-            });
-
-            await quizMessage.delete();
-        }
-
-        const result = activeQuizzes[message.author.id];
-
-        // Clear the quiz entry after displaying the result
-        delete activeQuizzes[message.author.id];
-
-        const resultEmbed = new EmbedBuilder()
-            .setTitle('Quiz Results')
-            .setDescription(`You scored ${result.score} out of 5 in level ${result.level}!`)
-            .setColor(embedColors[result.language])
-            .addFields(
-                { name: 'Level', value: result.level, inline: false },
-                { name: 'Language', value: result.language.charAt(0).toUpperCase() + result.language.slice(1), inline: false },
-                {
-                    name: 'Detailed Results',
-                    value: result.detailedResults
-                        .map(
-                            (res) =>
-                                `**Word:** ${res.word}\nYour Answer: ${res.userAnswer}\nCorrect: ${res.correct}\nResult: ${
-                                    res.isCorrect ? '✅' : '❌'
-                                }`
-                        )
-                        .join('\n\n'),
-                }
-            );
-
-        await message.channel.send({ embeds: [resultEmbed] });
-    } catch (error) {
-        console.error(error);
-        return message.channel.send('An error occurred. Please try again.');
-    }
-}
-
-// Word of the Day Schedules
-cron.schedule('16 15 * * *', async () => {
-    const channel = await client.channels.fetch(wordOfTheDayChannels.german);
-    const randomWord = germanWordList[Math.floor(Math.random() * germanWordList.length)];
-    const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day**')
-        .setDescription(`**Word:** ${randomWord.word}`)
-        .addFields(
-            { name: '**Meaning**', value: randomWord.meaning },
-            { name: '**Plural**', value: randomWord.plural },
-            { name: '**Indefinite Article**', value: randomWord.indefinite },
-            { name: '**Definite Article**', value: randomWord.definite }
-        )
-        .setColor(embedColors.german);
-
-    await channel.send({ embeds: [embed] });
-}, {
-    scheduled: true,
-    timezone: 'Asia/Kolkata',
-});
-
-// Repeat for French and Russian (adjust times)
-cron.schedule('16 15 * * *', async () => {
-    const channel = await client.channels.fetch(wordOfTheDayChannels.french);
-    const randomWord = frenchWordList[Math.floor(Math.random() * frenchWordList.length)];
-    const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day**')
-        .setDescription(`**Word:** ${randomWord.word}`)
-        .addFields(
-            { name: '**Meaning**', value: randomWord.meaning },
-            { name: '**Plural**', value: randomWord.plural },
-            { name: '**Indefinite Article**', value: randomWord.indefinite },
-            { name: '**Definite Article**', value: randomWord.definite }
-        )
-        .setColor(embedColors.french);
-
-    await channel.send({ embeds: [embed] });
-}, {
-    scheduled: true,
-    timezone: 'Asia/Kolkata',
-});
-
-// Russian
-cron.schedule('16 15 * * *', async () => {
-    const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
-    const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
-    const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day**')
-        .setDescription(`**Word:** ${randomWord.word}`)
-        .addFields(
-            { name: '**Meaning**', value: randomWord.meaning },
-            { name: '**Plural**', value: randomWord.plural },
-            { name: '**Indefinite Article**', value: randomWord.indefinite },
-            { name: '**Definite Article**', value: randomWord.definite }
-        )
-        .setColor(embedColors.russian);
-
-    await channel.send({ embeds: [embed] });
-}, {
-    scheduled: true,
-    timezone: 'Asia/Kolkata',
-});
-
+// Schedule Word of the Day
 client.once('ready', () => {
-    console.log(`${client.user.tag} is online!`);
+    console.log('Frau Lingua is online!');
+    scheduleWordOfTheDay();
 });
+
+// Function to schedule Word of the Day
+function scheduleWordOfTheDay() {
+    const schedule = [
+        { language: 'german', data: germanData.germanWordList, istTime: '18:00' },
+        { language: 'russian', data: russianData.russianWordList, istTime: '18:01' },
+        { language: 'french', data: frenchData.frenchWordList, istTime: '18:02' },
+    ];
+
+    setInterval(() => {
+        const currentTime = new Date().toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        });
+        schedule.forEach(({ language, data, istTime }) => {
+            if (currentTime === istTime) {
+                sendWordOfTheDay(language, data);
+            }
+        });
+    }, 60000); // Check every minute
+}
+
+// Function to send Word of the Day
+function sendWordOfTheDay(language, wordList) {
+    const channel = client.channels.cache.get(wordOfTheDayChannelId);
+    if (!channel) return;
+
+    const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
+    const embedColor = getEmbedColor(language);
+
+    const embed = new MessageEmbed()
+        .setColor(embedColor)
+        .setTitle(`Word of the Day - ${language.toUpperCase()}`)
+        .setDescription(`
+**Word:** ${randomWord.word}
+**Meaning:** ${randomWord.meaning}
+**Plural:** ${randomWord.plural}
+**Indefinite Article:** ${randomWord.indefinite}
+**Definite Article:** ${randomWord.definite}`);
+    channel.send({ embeds: [embed] });
+}
+
+// Function to get embed color based on language
+function getEmbedColor(language) {
+    switch (language) {
+        case 'french': return '#09ebf6';
+        case 'german': return '#f4ed09';
+        case 'russian': return '#7907ff';
+        default: return '#1cd86c';
+    }
+}
+
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    // Help command
+    if (message.content.startsWith('!help')) {
+        const embed = new MessageEmbed()
+            .setColor('#1cd86c')
+            .setTitle('Help - Commands')
+            .setDescription('Here are the available commands:')
+            .addFields(
+                { name: '!quiz', value: 'Start a quiz by selecting a language and level.' },
+                { name: '!resources', value: 'Get learning resources for German, French, and Russian.' },
+                { name: '!help', value: 'Show this help message.' }
+            );
+        message.channel.send({ embeds: [embed] });
+    }
+
+    // Resources command
+    if (message.content.startsWith('!resources')) {
+        const embed = new MessageEmbed()
+            .setColor('#1cd86c')
+            .setTitle('Language Learning Resources')
+            .setDescription('Here are some resources to help you learn:')
+            .addFields(
+                { name: 'German', value: 'Duolingo, Deutsche Welle, LingQ' },
+                { name: 'French', value: 'Duolingo, Français Facile, TV5MONDE' },
+                { name: 'Russian', value: 'Duolingo, Master Russian, Learn Russian Step by Step' }
+            );
+        message.channel.send({ embeds: [embed] });
+    }
+
+    // Start quiz command
+    if (message.content.startsWith('!quiz')) {
+        const embed = new MessageEmbed()
+            .setColor('#1cd86c')
+            .setTitle('Choose a Language')
+            .setDescription('React with:\n🇩 for German\n🇫 for French\n🇷 for Russian');
+        const msg = await message.channel.send({ embeds: [embed] });
+        await msg.react('🇩');
+        await msg.react('🇫');
+        await msg.react('🇷');
+
+        const filter = (reaction, user) => ['🇩', '🇫', '🇷'].includes(reaction.emoji.name) && user.id === message.author.id;
+        const collector = msg.createReactionCollector({ filter, time: 30000 });
+
+        collector.on('collect', async (reaction) => {
+            let language;
+            switch (reaction.emoji.name) {
+                case '🇩': language = 'german'; break;
+                case '🇫': language = 'french'; break;
+                case '🇷': language = 'russian'; break;
+            }
+
+            await msg.delete(); // Delete language selection message
+
+            const levelEmbed = new MessageEmbed()
+                .setColor(getEmbedColor(language))
+                .setTitle('Choose a Level')
+                .setDescription(
+                    'React with:\n1️⃣ for A1\n2️⃣ for A2\n3️⃣ for B1\n4️⃣ for B2\n5️⃣ for C1\n6️⃣ for C2'
+                );
+            const levelMsg = await message.channel.send({ embeds: [levelEmbed] });
+            await levelMsg.react('1️⃣');
+            await levelMsg.react('2️⃣');
+            await levelMsg.react('3️⃣');
+            await levelMsg.react('4️⃣');
+            await levelMsg.react('5️⃣');
+            await levelMsg.react('6️⃣');
+
+            const levelFilter = (reaction, user) =>
+                ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'].includes(reaction.emoji.name) &&
+                user.id === message.author.id;
+            const levelCollector = levelMsg.createReactionCollector({ filter: levelFilter, time: 30000 });
+
+            levelCollector.on('collect', async (levelReaction) => {
+                let level;
+                switch (levelReaction.emoji.name) {
+                    case '1️⃣': level = 'A1'; break;
+                    case '2️⃣': level = 'A2'; break;
+                    case '3️⃣': level = 'B1'; break;
+                    case '4️⃣': level = 'B2'; break;
+                    case '5️⃣': level = 'C1'; break;
+                    case '6️⃣': level = 'C2'; break;
+                }
+
+                await levelMsg.delete(); // Delete level selection message
+
+                const data = getLanguageData(language);
+                startQuiz(message, language, level, data);
+            });
+        });
+    }
+});
+
+// Start Quiz Function
+function startQuiz(message, language, level, data) {
+    const questions = data.quizData[level];
+    let currentQuestion = 0;
+    let score = 0;
+
+    const embed = new MessageEmbed()
+        .setColor(getEmbedColor(language))
+        .setTitle(`${language.toUpperCase()} Quiz - Level ${level}`)
+        .setDescription(`**Question 1:** ${questions[currentQuestion].word}\n${questions[currentQuestion].options.join('\n')}`);
+    message.channel.send({ embeds: [embed] });
+}
+
+// Get Language Data
+function getLanguageData(language) {
+    switch (language) {
+        case 'german': return germanData;
+        case 'french': return frenchData;
+        case 'russian': return russianData;
+        default: return null;
+    }
+}
 
 client.login(DISCORD_TOKEN);
