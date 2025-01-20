@@ -156,6 +156,7 @@ client.on('messageCreate', async (message) => {
 const messageTimestamps = {}; // To track message timestamps per user
 const spamThreshold = 5; // Number of messages in a short time to trigger warning
 const timeoutDuration = 3 * 60 * 1000; // 3 minutes timeout in milliseconds
+const warningDuration = 60 * 1000; // 1 minute warning duration
 const userWarnings = {}; // To track users who have been warned
 const userTimeouts = {}; // To track users who are timed out
 
@@ -183,12 +184,13 @@ client.on('messageCreate', async (message) => {
         if (!userWarnings[userId]) {
             // Send a warning message to the user
             await message.reply('🚨 Warning: You are sending messages too quickly. Please slow down!');
-            userWarnings[userId] = true; // Mark the user as warned
+            userWarnings[userId] = Date.now(); // Record the time of the warning
         } else if (!userTimeouts[userId]) {
             // Timeout the user for 3 minutes if they continue spamming after the warning
             try {
-                await message.guild.members.timeout(message.author, timeoutDuration, 'Spam behavior');
-                userTimeouts[userId] = Date.now(); // Mark the user as timed out with timestamp
+                const member = await message.guild.members.fetch(userId); // Fetch the member object
+                await member.timeout(timeoutDuration, 'Spam behavior'); // Timeout the user
+                userTimeouts[userId] = Date.now(); // Mark the user as timed out
                 await message.reply('You have been timed out for 3 minutes due to repeated spamming.');
             } catch (err) {
                 console.error('Error while timing out the user:', err);
@@ -203,7 +205,7 @@ setInterval(() => {
 
     // Reset user warnings after 1 minute
     for (const userId in userWarnings) {
-        if (userWarnings[userId] && now - Math.max(...(messageTimestamps[userId] || [])) >= 60000) {
+        if (userWarnings[userId] && now - userWarnings[userId] >= warningDuration) {
             delete userWarnings[userId];
         }
     }
