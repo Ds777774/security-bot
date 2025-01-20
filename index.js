@@ -51,6 +51,109 @@ const activeQuizzes = {};
 
 // Start Command
 client.on('messageCreate', async (message) => {
+  // Help Command
+  if (message.content.toLowerCase() === '!help') {
+    const helpEmbed = new EmbedBuilder()
+      .setTitle('Quiz Rules')
+      .setDescription(
+        'Here are the rules for the German Vocabulary Quiz:\n\n' +
+        '1. Use **!quiz** to begin the quiz.\n' +
+        '2. Select your level by reacting to the options:\n   🇦: A1, 🇧: A2, 🇨: B1, 🇩: B2, 🇪: C1, 🇫: C2.\n' +
+        '3. The bot will ask **5 questions** from the selected level.\n' +
+        '4. Each question has **4 options (A, B, C, D)**.\n' +
+        '5. You have **1 minute** to answer each question.\n' +
+        '6. Your final result will include your score, correct answers, and your level.'
+      )
+      .setColor('#f4ed09')
+      .setFooter({ text: 'Type !quiz to begin the quiz. Good luck!' });
+
+    await message.channel.send({ embeds: [helpEmbed] });
+    return; // Stop further execution for this command
+  }
+
+  // Resources Command
+  if (message.content.toLowerCase() === '!resources') {
+    const resourcesPromptEmbed = new EmbedBuilder()
+      .setTitle('Choose a Language for Resources')
+      .setDescription(
+        'Please select the language for which you want resources:\n\n' +
+        '🇩🇪 German\n' +
+        '🇫🇷 French\n' +
+        '🇷🇺 Russian'
+      )
+      .setColor('#3498db')
+      .setFooter({ text: 'React with the corresponding flag to choose a language.' });
+
+    const msg = await message.channel.send({ embeds: [resourcesPromptEmbed] });
+    
+    // React with the available language flags
+    await msg.react('🇩🇪'); // German flag
+    await msg.react('🇫🇷'); // French flag
+    await msg.react('🇷🇺'); // Russian flag
+
+    // Create a reaction collector for the user to choose the language
+    const filter = (reaction, user) => ['🇩🇪', '🇫🇷', '🇷🇺'].includes(reaction.emoji.name) && !user.bot;
+    const collector = msg.createReactionCollector({ filter, time: 60000 }); // Collector for 60 seconds
+
+    collector.on('collect', async (reaction, user) => {
+      // Remove the user's reaction
+      await reaction.users.remove(user);
+
+      // Delete the original prompt message
+      await msg.delete();
+
+      // Send the resources based on the selected language
+      let resourcesEmbed;
+
+      if (reaction.emoji.name === '🇩🇪') {
+        resourcesEmbed = new EmbedBuilder()
+          .setTitle('German Learning Resources')
+          .setDescription(
+            '**YouTube Channel:**\n' +
+            '[Learn German Original](https://youtube.com/@learngermanoriginal?si=6tqhbeRjhkGSCW6z)\n\n' +
+            '**Book Recommendations:**\n' +
+            'Made German Simple by Arnold\n\n' +
+            '**Vocabulary PDF:**\n' +
+            '[Download PDF](https://drive.google.com/file/d/1I73hvUDb3uvVNP98oAEbOvVYGLv1NlKO/view?usp=drivesdk)'
+          )
+          .setColor('#f4ed09');
+      } else if (reaction.emoji.name === '🇫🇷') {
+        resourcesEmbed = new EmbedBuilder()
+          .setTitle('French Learning Resources')
+          .setDescription(
+            '**YouTube Channel:**\n' +
+            '[LingoNi French](https://youtube.com/@lingonifrench?si=FcmmO68Onp0qGaat)\n\n' +
+            '**Vocabulary PDF:**\n' +
+            '[Download PDF](https://drive.google.com/file/d/1I4p26ddR2Wy_XsB2dtX_5uwvsjYq69So/view?usp=drivesdk)'
+          )
+          .setColor('#3498db');
+      } else if (reaction.emoji.name === '🇷🇺') {
+        resourcesEmbed = new EmbedBuilder()
+          .setTitle('Russian Learning Resources')
+          .setDescription(
+            '**YouTube Channel:**\n' +
+            '[Real Russian Club](https://youtube.com/@realrussianclub?si=vjrr0SdOL-In-0lN)\n\n' +
+            '**Vocabulary PDF:**\n' +
+            '[Download PDF](https://drive.google.com/file/d/1I9i72NHcSHIrBEHdxMH3vGkwZVnVcGZ5/view?usp=drivesdk)'
+          )
+          .setColor('#e74c3c');
+      }
+
+      // Send the resources
+      await message.channel.send({ embeds: [resourcesEmbed] });
+
+      // Stop the collector
+      collector.stop();
+    });
+
+    collector.on('end', (collected, reason) => {
+      if (reason === 'time') {
+        msg.delete();
+        message.channel.send('Time is up! Please try again with the !resources command.');
+      }
+    });
+  }
+
     if (message.content.toLowerCase() === '!quiz') {
         if (activeQuizzes[message.author.id]) {
             return message.reply('You are already taking a quiz. Please finish it first.');
