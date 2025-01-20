@@ -354,6 +354,19 @@ client.once('ready', () => {
     console.log(`${client.user?.tag} is online!`);
 });
 
-client.login(DISCORD_TOKEN).catch((err) => {
+// Import the required Discord.js module
+const { Client, GatewayIntentBits } = require('discord.js');
+require('dotenv').config();
+
+// Create a new client instance
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// Log a message when the client is ready
+client.once('ready', () => {
+    console.log(`${client.user.tag} is online!`);
+});
+
+// Log in to Discord with your app's token
+client.login(process.env.DISCORD_TOKEN).catch((err) => {
     console.error('Failed to log in:', err);
 });
