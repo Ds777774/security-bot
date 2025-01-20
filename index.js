@@ -110,6 +110,91 @@ client.on('messageCreate', async (message) => {
             );
         message.channel.send({ embeds: [embed] });
     }
+
+    // Start quiz command
+    if (message.content.startsWith('!quiz')) {
+        const embed = new MessageEmbed()
+            .setColor('#1cd86c')
+            .setTitle('Choose a Language')
+            .setDescription('React with:\n🇩 for German\n🇫 for French\n🇷 for Russian');
+        const msg = await message.channel.send({ embeds: [embed] });
+        await msg.react('🇩');
+        await msg.react('🇫');
+        await msg.react('🇷');
+
+        const filter = (reaction, user) => ['🇩', '🇫', '🇷'].includes(reaction.emoji.name) && user.id === message.author.id;
+        const collector = msg.createReactionCollector({ filter, time: 30000 });
+
+        collector.on('collect', async (reaction) => {
+            let language;
+            switch (reaction.emoji.name) {
+                case '🇩': language = 'german'; break;
+                case '🇫': language = 'french'; break;
+                case '🇷': language = 'russian'; break;
+            }
+
+            await msg.delete(); // Delete language selection message
+
+            const levelEmbed = new MessageEmbed()
+                .setColor(getEmbedColor(language))
+                .setTitle('Choose a Level')
+                .setDescription(
+                    'React with:\n1️⃣ for A1\n2️⃣ for A2\n3️⃣ for B1\n4️⃣ for B2\n5️⃣ for C1\n6️⃣ for C2'
+                );
+            const levelMsg = await message.channel.send({ embeds: [levelEmbed] });
+            await levelMsg.react('1️⃣');
+            await levelMsg.react('2️⃣');
+            await levelMsg.react('3️⃣');
+            await levelMsg.react('4️⃣');
+            await levelMsg.react('5️⃣');
+            await levelMsg.react('6️⃣');
+
+            const levelFilter = (reaction, user) =>
+                ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'].includes(reaction.emoji.name) &&
+                user.id === message.author.id;
+            const levelCollector = levelMsg.createReactionCollector({ filter: levelFilter, time: 30000 });
+
+            levelCollector.on('collect', async (levelReaction) => {
+                let level;
+                switch (levelReaction.emoji.name) {
+                    case '1️⃣': level = 'A1'; break;
+                    case '2️⃣': level = 'A2'; break;
+                    case '3️⃣': level = 'B1'; break;
+                    case '4️⃣': level = 'B2'; break;
+                    case '5️⃣': level = 'C1'; break;
+                    case '6️⃣': level = 'C2'; break;
+                }
+
+                await levelMsg.delete(); // Delete level selection message
+
+                const data = getLanguageData(language);
+                startQuiz(message, language, level, data);
+            });
+        });
+    }
 });
+
+// Start Quiz Function
+function startQuiz(message, language, level, data) {
+    const questions = data.quizData[level];
+    let currentQuestion = 0;
+    let score = 0;
+
+    const embed = new MessageEmbed()
+        .setColor(getEmbedColor(language))
+        .setTitle(`${language.toUpperCase()} Quiz - Level ${level}`)
+        .setDescription(`**Question 1:** ${questions[currentQuestion].word}\n${questions[currentQuestion].options.join('\n')}`);
+    message.channel.send({ embeds: [embed] });
+}
+
+// Get Language Data
+function getLanguageData(language) {
+    switch (language) {
+        case 'german': return germanData;
+        case 'french': return frenchData;
+        case 'russian': return russianData;
+        default: return null;
+    }
+}
 
 client.login(DISCORD_TOKEN);
