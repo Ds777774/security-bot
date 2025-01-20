@@ -153,10 +153,15 @@ client.on('messageCreate', async (message) => {
 
             const resultEmbed = new EmbedBuilder()
                 .setTitle('Quiz Results')
-                .setDescription(`You scored ${result.score} out of 5 in level ${result.level}!`)
-                .setColor(embedColors[language])
+                .setDescription(`You scored ${result.score} out of 5 in level ${result.level} (${result.language.charAt(0).toUpperCase() + result.language.slice(1)})!`)
+                .setColor(embedColors[result.language])
                 .addFields(
                     { name: 'Level', value: result.level, inline: false },
+                    {
+                        name: 'Language',
+                        value: result.language.charAt(0).toUpperCase() + result.language.slice(1),
+                        inline: false,
+                    },
                     {
                         name: 'Detailed Results',
                         value: result.detailedResults
