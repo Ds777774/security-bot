@@ -156,6 +156,7 @@ client.on('messageCreate', async (message) => {
 const messageTimestamps = {}; // To track message timestamps per user
 const spamThreshold = 5; // Number of messages in a short time to trigger warning
 const timeoutDuration = 3 * 60 * 1000; // 3 minutes timeout in milliseconds
+const userWarnings = {}; // To track users who have been warned
 const userTimeouts = {}; // To track users who are timed out
 
 client.on('messageCreate', async (message) => {
@@ -171,22 +172,23 @@ client.on('messageCreate', async (message) => {
     // Add the current timestamp of the message to the array
     messageTimestamps[userId].push(Date.now());
 
-    // Filter messages sent within the last minute (adjust as needed)
+    // Filter messages sent within the last minute
     messageTimestamps[userId] = messageTimestamps[userId].filter(
         timestamp => Date.now() - timestamp <= 60000
     );
 
     // If the user sends 5 or more messages in the last minute
     if (messageTimestamps[userId].length >= spamThreshold) {
-        // Send a warning message to the user
-        await message.reply('🚨 Warning: You are sending messages too quickly. Please slow down!');
-
-        // Check if the user has been timed out already
-        if (!userTimeouts[userId]) {
-            // Timeout the user for 3 minutes
+        // Check if the user has been warned before
+        if (!userWarnings[userId]) {
+            // Send a warning message to the user
+            await message.reply('🚨 Warning: You are sending messages too quickly. Please slow down!');
+            userWarnings[userId] = true; // Mark the user as warned
+        } else if (!userTimeouts[userId]) {
+            // Timeout the user for 3 minutes if they continue spamming after the warning
             try {
                 await message.guild.members.timeout(message.author, timeoutDuration, 'Spam behavior');
-                userTimeouts[userId] = true; // Mark the user as timed out
+                userTimeouts[userId] = Date.now(); // Mark the user as timed out with timestamp
                 await message.reply('You have been timed out for 3 minutes due to repeated spamming.');
             } catch (err) {
                 console.error('Error while timing out the user:', err);
@@ -195,20 +197,28 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// Reset timeout status when the timeout expires
+// Reset warning and timeout statuses when appropriate
 setInterval(() => {
-    // Reset timeout statuses after 3 minutes
     const now = Date.now();
+
+    // Reset user warnings after 1 minute
+    for (const userId in userWarnings) {
+        if (userWarnings[userId] && now - Math.max(...(messageTimestamps[userId] || [])) >= 60000) {
+            delete userWarnings[userId];
+        }
+    }
+
+    // Reset user timeouts after the timeout duration
     for (const userId in userTimeouts) {
         if (userTimeouts[userId] && now - userTimeouts[userId] >= timeoutDuration) {
-            delete userTimeouts[userId]; // Remove the timeout after the duration
+            delete userTimeouts[userId];
         }
     }
 
     // Clean up old timestamps (older than 1 minute)
     for (const [userId, timestamps] of Object.entries(messageTimestamps)) {
         messageTimestamps[userId] = timestamps.filter(
-            timestamp => Date.now() - timestamp <= 60000
+            timestamp => now - timestamp <= 60000
         );
     }
 }, 60000);
