@@ -154,44 +154,39 @@ client.on('messageCreate', async (message) => {
     });
   }
 
+const { EmbedBuilder } = require('discord.js');
+
+// Replace this with your server ID
+const serverId = '1327875414584201347';
+
 client.on('guildMemberAdd', async (member) => {
-  console.log(`New member joined: ${member.user.tag}`);  // Check if this logs to the console
-  
-  try {
-    const accountCreatedAt = member.user.createdAt;
-    const oneDayAgo = new Date();
-    oneDayAgo.setDate(oneDayAgo.getDate() - 1); // 1 day ago
+    if (member.guild.id !== serverId) return; // Ensure the check is only for your server
 
-    if (accountCreatedAt > oneDayAgo) {
-      console.log(`${member.user.tag} has an account younger than 1 day.`);
+    // Get the account creation date of the member
+    const accountCreationDate = member.user.createdAt;
 
-      // Try to kick the member
-      try {
-        await member.kick('Account age less than 1 day');
-        console.log(`Kicked ${member.user.tag} for being too new`);
-      } catch (error) {
-        console.error(`Error kicking member ${member.user.tag}:`, error);
-      }
+    // Get the current date and check if the account is older than 1 day
+    const currentDate = new Date();
+    const timeDifference = currentDate - accountCreationDate;
+    const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
 
-      // Try to send a DM
-      const dmEmbed = new EmbedBuilder()
-        .setTitle('Account Too New to Join')
-        .setDescription(
-          'Your account must be at least 1 day old to join this server.\n' +
-          'Please wait until your account is older, then you can try joining again.'
-        )
-        .setColor('#e74c3c')
-        .setFooter({ text: 'Security Check' });
+    // If the account is less than 1 day old, kick the member and send a DM
+    if (timeDifference < oneDayInMilliseconds) {
+        try {
+            // Send a DM to the new member explaining why they were kicked
+            const dmEmbed = new EmbedBuilder()
+                .setTitle('Account Age Requirement')
+                .setDescription('Your account must be at least 1 day old to join this server.')
+                .setColor('#ff0000');
+            await member.send({ embeds: [dmEmbed] });
 
-      try {
-        await member.send({ embeds: [dmEmbed] });
-      } catch (error) {
-        console.error('Could not send DM to the member:', error);
-      }
+            // Kick the member
+            await member.kick('Account is less than 1 day old');
+            console.log(`Kicked ${member.user.tag} for having an account younger than 1 day.`);
+        } catch (error) {
+            console.error('Error kicking member or sending DM:', error);
+        }
     }
-  } catch (error) {
-    console.error('Error checking account age or kicking member:', error);
-  }
 });
 
     if (message.content.toLowerCase() === '!quiz') {
