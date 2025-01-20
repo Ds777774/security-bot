@@ -4,27 +4,27 @@ const embedColors = {
     russian: '#7907ff',
     german: '#f4ed09',
     french: '#09ebf6',
-    default: '#1cd86c',
 };
 
 module.exports = {
-    name: 'help',
-    description: 'Displays quiz rules for Russian, German, and French.',
+    name: 'resources',
+    description: 'Shares helpful resources for learning languages.',
     execute: async (message) => {
         const embed = new EmbedBuilder()
-            .setTitle('Quiz Rules')
+            .setTitle('Language Learning Resources')
             .setDescription(
-                'Here are the rules for the Vocabulary Quiz:\n\n' +
-                '1. Use **!quiz [language]** to start the quiz.\n' +
-                '   Supported languages: Russian, German, French.\n' +
-                '2. Choose your level by reacting to the options:\n   🇦: A1, 🇧: A2, 🇨: B1, 🇩: B2, 🇪: C1, 🇫: C2.\n' +
-                '3. The bot will ask **5 questions** from the selected level.\n' +
-                '4. Each question has **4 options (A, B, C, D)**.\n' +
-                '5. You have **1 minute** to answer each question.\n' +
-                '6. Your final result will include your score, correct answers, and detailed feedback.'
+                '**Russian**:\n' +
+                '1. **Duolingo**: [duolingo.com](https://www.duolingo.com)\n' +
+                '2. **RussianPod101**: [russianpod101.com](https://www.russianpod101.com)\n\n' +
+                '**German**:\n' +
+                '1. **Duolingo**: [duolingo.com](https://www.duolingo.com)\n' +
+                '2. **Goethe-Institut**: [goethe.de](https://www.goethe.de)\n\n' +
+                '**French**:\n' +
+                '1. **Duolingo**: [duolingo.com](https://www.duolingo.com)\n' +
+                '2. **TV5MONDE**: [apprendre.tv5monde.com](https://apprendre.tv5monde.com)'
             )
             .setColor(embedColors.default)
-            .setFooter({ text: 'Type !quiz [language] to begin the quiz. Good luck!' });
+            .setFooter({ text: 'Explore these resources to enhance your learning!' });
 
         await message.channel.send({ embeds: [embed] });
     },
