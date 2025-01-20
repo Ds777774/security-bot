@@ -49,9 +49,9 @@ const wordOfTheDayChannels = {
 
 // Word of the Day Schedule
 const wordOfTheDayTimes = {
-    russian: '41 21 * * *', // 12:30 PM IST
-    german: '41 21 * * *',   // 9:00 AM IST
-    french: '41 21 * * *', // 6:15 PM IST
+    russian: '50 21 * * *', // 12:30 PM IST
+    german: '47 21 * * *',   // 9:00 AM IST
+    french: '47 21 * * *', // 6:15 PM IST
 };
 
 // Active Quiz Tracking
@@ -193,20 +193,24 @@ client.on('messageCreate', async (message) => {
 });
 
 cron.schedule(wordOfTheDayTimes.russian, async () => {
-    const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
-    const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
+    try {
+        const channel = await client.channels.fetch(wordOfTheDayChannels.russian);
+        const randomWord = russianWordList[Math.floor(Math.random() * russianWordList.length)];
 
-    const embed = new EmbedBuilder()
-        .setTitle('**Word of the Day (Russian)**')
-        .setDescription(`**Word:** ${randomWord.word}`)
-        .addFields(
-            { name: 'Meaning', value: randomWord.meaning },
-            { name: 'Plural', value: randomWord.plural },
-            { name: 'Examples', value: randomWord.examples }
-        )
-        .setColor(embedColors.russian);
+        const embed = new EmbedBuilder()
+            .setTitle('**Word of the Day (Russian)**')
+            .setDescription(`**Word:** ${randomWord.word}`)
+            .addFields(
+                { name: 'Meaning', value: randomWord.meaning },
+                { name: 'Plural', value: randomWord.plural },
+                { name: 'Examples', value: randomWord.examples }
+            )
+            .setColor(embedColors.russian);
 
-    await channel.send({ embeds: [embed] });
+        await channel.send({ embeds: [embed] });
+    } catch (error) {
+        console.error('Error sending word of the day:', error);
+    }
 }, {
     scheduled: true,
     timezone: 'Asia/Kolkata',
