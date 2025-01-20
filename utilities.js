@@ -1,3 +1,13 @@
+const { EmbedBuilder } = require('discord.js');
+
+// Colors for embeds based on language
+const embedColors = {
+    russian: '#7907ff',
+    german: '#f4ed09',
+    french: '#09ebf6',
+};
+
+// Function to shuffle an array in place using the Fisher-Yates algorithm
 /**
  * Shuffles an array in place using the Fisher-Yates algorithm.
  * @param {Array} array - The array to shuffle.
@@ -9,6 +19,7 @@ function shuffleArray(array) {
     }
 }
 
+// Function to clear the active quiz for a user
 /**
  * Clears the active quiz for a user.
  * @param {Object} activeQuizzes - The object tracking active quizzes.
@@ -20,6 +31,7 @@ function clearActiveQuiz(activeQuizzes, userId) {
     }
 }
 
+// Function to track the active quiz for a user
 /**
  * Tracks the active quiz for a user.
  * @param {Object} activeQuizzes - The object tracking active quizzes.
@@ -34,6 +46,7 @@ function trackActiveQuiz(activeQuizzes, userId, quizData) {
     }
 }
 
+// Function to generate a random item from an array (e.g., "Word of the Day")
 /**
  * Generates a random item from an array (e.g., "Word of the Day").
  * @param {Array} array - The array to select a random item from.
@@ -46,6 +59,7 @@ function getRandomItem(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
+// Function to format a word's details into an embed-friendly format
 /**
  * Formats a word's details into an embed-friendly format.
  * @param {Object} word - The word object containing details.
@@ -64,6 +78,7 @@ function formatWordDetails(word) {
     ];
 }
 
+// Function to handle "Word of the Day" logic
 /**
  * Handles the "Word of the Day" logic.
  * @param {Array} wordList - List of words to choose from for the Word of the Day.
@@ -79,6 +94,7 @@ function getWordOfTheDay(wordList, language) {
     };
 }
 
+// Function to send a Word of the Day message
 /**
  * Sends a Word of the Day message.
  * @param {Object} message - The Discord message object.
@@ -103,5 +119,5 @@ module.exports = {
     getRandomItem,
     formatWordDetails,
     getWordOfTheDay,
-    sendWordOfTheDay
+    sendWordOfTheDay,
 };
