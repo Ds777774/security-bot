@@ -27,7 +27,11 @@ function clearActiveQuiz(activeQuizzes, userId) {
  * @param {Object} quizData - The quiz data for the user.
  */
 function trackActiveQuiz(activeQuizzes, userId, quizData) {
-    activeQuizzes[userId] = quizData;
+    if (quizData && typeof quizData === 'object' && quizData.language && quizData.level) {
+        activeQuizzes[userId] = quizData;
+    } else {
+        throw new Error('Invalid quiz data provided');
+    }
 }
 
 /**
@@ -48,8 +52,12 @@ function getRandomItem(array) {
  * @returns {Array} An array of fields for an embed.
  */
 function formatWordDetails(word) {
+    if (!word || typeof word !== 'object') {
+        throw new Error('Invalid word object');
+    }
+    
     return [
-        { name: '**Meaning**', value: word.meaning, inline: false },
+        { name: '**Meaning**', value: word.meaning || 'N/A', inline: false },
         { name: '**Plural**', value: word.plural || 'N/A', inline: false },
         { name: '**Indefinite Article**', value: word.indefinite || 'N/A', inline: false },
         { name: '**Definite Article**', value: word.definite || 'N/A', inline: false }
