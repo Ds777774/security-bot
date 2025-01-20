@@ -19,7 +19,6 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildMembers,  // Ensure GuildMembers intent is added
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
@@ -154,56 +153,6 @@ client.on('messageCreate', async (message) => {
       }
     });
   }
-
-// Event handler for when the bot is logged in and ready
-client.once('ready', () => {
-    console.log(`${client.user.tag} is online!`);
-});
-
-// Account Age Security
-const serverId = '1327875414584201347'; // Your server ID
-
-client.on('guildMemberAdd', async (member) => {
-    if (member.guild.id !== serverId) return; // Ensure the check is only for your server
-
-    // Get the account creation date of the member
-    const accountCreationDate = member.user.createdAt;
-
-    // Get the current date and check if the account is older than 1 day
-    const currentDate = new Date();
-    const timeDifference = currentDate - accountCreationDate;
-    const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
-
-    // If the account is less than 1 day old, kick the member and send a DM
-    if (timeDifference < oneDayInMilliseconds) {
-        try {
-            // Create an embedded message to explain the reason for the kick
-            const dmEmbed = new EmbedBuilder()
-                .setTitle('Account Age Requirement')
-                .setDescription('Your account must be at least **1 day old** to join this server. As your account is too young, you have been kicked.')
-                .setColor('#ff0000')
-                .setFooter({ text: 'Please try again once your account meets the requirement.' });
-
-            // Send a DM to the new member explaining why they were kicked
-            await member.send({ embeds: [dmEmbed] });
-
-            // Log the attempt to kick the member
-            console.log(`Attempting to kick ${member.user.tag} for having an account younger than 1 day...`);
-
-            // Kick the member
-            await member.kick('Account is less than 1 day old');
-            console.log(`Successfully kicked ${member.user.tag} for having an account younger than 1 day.`);
-
-        } catch (error) {
-            // If the bot doesn't have permission to kick members, log the error
-            if (error.code === 50013) {
-                console.error('Permission error: The bot does not have permission to kick members.');
-            } else {
-                console.error('Error kicking member or sending DM:', error);
-            }
-        }
-    }
-});
 
     if (message.content.toLowerCase() === '!quiz') {
         if (activeQuizzes[message.author.id]) {
