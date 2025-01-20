@@ -46,6 +46,8 @@ const wordOfTheDayChannels = {
     russian: '1327875414584201350',
 };
 
+const { EmbedBuilder } = require('discord.js');
+
 // Active Quiz Tracking
 const activeQuizzes = {};
 
@@ -154,12 +156,10 @@ client.on('messageCreate', async (message) => {
     });
   }
 
-const { EmbedBuilder } = require('discord.js');
+  // Account Age Security
+  const serverId = '1327875414584201347'; // Your server ID
 
-// Replace this with your server ID
-const serverId = '1327875414584201347';
-
-client.on('guildMemberAdd', async (member) => {
+  client.on('guildMemberAdd', async (member) => {
     if (member.guild.id !== serverId) return; // Ensure the check is only for your server
 
     // Get the account creation date of the member
@@ -188,7 +188,6 @@ client.on('guildMemberAdd', async (member) => {
         }
     }
 });
-
     if (message.content.toLowerCase() === '!quiz') {
         if (activeQuizzes[message.author.id]) {
             return message.reply('You are already taking a quiz. Please finish it first.');
