@@ -1,3 +1,4 @@
+// Active Quiz Tracking
 const activeQuizzes = {};
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const express = require('express');
@@ -55,13 +56,17 @@ const wordOfTheDayTimes = {
     french: '00 22 * * *', // 6:15 PM IST
 };
 
-// Active Quiz Tracking
 
 // Commands and Event Handling
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
     if (message.content.toLowerCase() === '!quiz') {
+        // Check if the user already has an active quiz
+        if (activeQuizzes[message.author.id]) {
+            return message.channel.send('You are already participating in a quiz! Please finish it before starting a new one.');
+        }
+
         const languageEmbed = new EmbedBuilder()
             .setTitle('Choose a Language for the Quiz')
             .setDescription('React to select the language:\n\n🇩: German\n🇫: French\n🇷: Russian')
@@ -124,6 +129,7 @@ client.on('messageCreate', async (message) => {
                 return message.channel.send('No questions available for this level.');
             }
 
+            // Initialize quiz data for the user
             activeQuizzes[message.author.id] = { language: selectedLanguage, level: selectedLevel, score: 0, detailedResults: [] };
 
             for (const question of questionsToAsk) {
@@ -194,6 +200,7 @@ client.on('messageCreate', async (message) => {
             return message.channel.send('An error occurred. Please try again.');
         }
     }
+});
 
     if (message.content.toLowerCase() === '!help') {
         help.execute(message);
