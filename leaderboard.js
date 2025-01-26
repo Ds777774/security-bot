@@ -1,15 +1,13 @@
 const { EmbedBuilder } = require('discord.js');
 const { Pool } = require('pg');
 
-// PostgreSQL connection setup
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, // Render's PostgreSQL URL
+    connectionString: process.env.DATABASE_URL, // Uses Neon DB URL
     ssl: {
-        rejectUnauthorized: false, // Required for Render
+        rejectUnauthorized: false, // Required for Neon
     },
 });
 
-// Ensure the leaderboard table exists
 (async () => {
     try {
         await pool.query(`
