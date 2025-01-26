@@ -19,6 +19,7 @@ const { handleBadWords } = require('./badWords');
 const suggestion = require('./commands/suggestion');
 const ticket = require('./commands/ticket');
 const status = require('./status.js');
+const leaderboard = require('./leaderboard.js');
 
 // Environment Variables
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
@@ -124,6 +125,12 @@ Object.keys(wordOfTheDayTimes).forEach((language) => {
 client.on('messageCreate', async (message) => {
     // Ignore messages from bots
     if (message.author.bot) return;
+
+
+    if (message.content.toLowerCase() === '!leaderboard') {
+        leaderboard.execute(message);
+    }
+
 
 if (message.content.toLowerCase() === '!ticket') {
   ticket.execute(message);
@@ -312,6 +319,14 @@ for (const question of questionsToAsk) {
 
             // Step 4: Display Results
 const result = activeQuizzes[message.author.id];
+// Update leaderboard after quiz
+const username = message.author.username; // Get the user's username
+const points = result.score; // Use the score from the quiz result
+const selectedLanguage = result.language; // Use the selected language
+const selectedLevel = result.level; // Use the selected level
+
+// Call updateLeaderboard to store the data
+leaderboard.updateLeaderboard(username, selectedLanguage, selectedLevel, points);
 delete activeQuizzes[message.author.id];
 
 // Create the detailed results text
