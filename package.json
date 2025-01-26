@@ -1,24 +1,19 @@
 {
-  "name": "discord-language-quiz-bot",
+  "name": "discord-bot",
   "version": "1.0.0",
-  "description": "A Discord bot that conducts quizzes for Russian, German, and French vocabulary.",
+  "description": "A multilingual quiz and vocabulary bot for Discord.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": ["discord", "bot", "quiz", "multilingual", "vocabulary"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.12.1",
-    "express": "^4.18.2",
-    "node-cron": "^3.0.2"
-  },
-  "engines": {
-    "node": "16.x"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Ds777774/security-bot.git"
-  },
-  "keywords": ["discord", "bot", "quiz", "language-learning"],
-  "author": "Your Name",
-  "license": "MIT"
+    "@types/node": "^18.0.6",
+    "discord.js": "^14.17.3",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3"
+  }
 }
