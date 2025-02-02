@@ -127,7 +127,7 @@ Object.keys(wordOfTheDayTimes).forEach((language) => {
 });
 
 // Check if the message is badwords in any language
-client.on('messageCreate', async (message) => {
+client.on('interactionCreate', async (message) => {
     if (message.author.bot) return;
 
     await handleBanCommand(message);
@@ -136,7 +136,7 @@ client.on('messageCreate', async (message) => {
     await modRank.trackBumpingPoints(message); 
 
     // Handle !modrank command
-    if (message.content.toLowerCase() === '!modrank') {
+    if (message.content.toLowerCase() === 'modrank') {
         await modRank.execute(message); // Display the leaderboard
     } 
 
@@ -147,15 +147,15 @@ client.on('messageCreate', async (message) => {
     }
         await handleSpamDetection(message);
 await handleBanCommand(message);
-if (message.content.toLowerCase() === '!leaderboard') {
+if (message.content.toLowerCase() === 'leaderboard') {
    leaderboard.execute(message);
 }
 
-if (message.content.toLowerCase() === '!ticket') {
+if (message.content.toLowerCase() === 'ticket') {
   ticket.execute(message);
 }
 
-if(message.content.toLowerCase().startsWith('!suggestion')) {
+if(message.content.toLowerCase().startsWith('suggestion')) {
     suggestion.execute(message);
 }
     // Handle bad words
@@ -163,14 +163,14 @@ if(message.content.toLowerCase().startsWith('!suggestion')) {
 });
 
 // Commands and Event Handling
-client.on('messageCreate', async (message) => {
+client.on('interactionCreate', async (message) => {
     if (message.author.bot) return;
 
 // Commands for Announcement
-    if (message.content.toLowerCase() === '!announcement') {
+    if (message.content.toLowerCase() === 'announcement') {
     announcement.execute(message);
 }
-    if (message.content.toLowerCase() === '!updates') {
+    if (message.content.toLowerCase() === 'updates') {
         updates.execute(message); // Execute the updates command
 }
     // Check if the message is a greeting in any language
@@ -182,7 +182,7 @@ client.on('messageCreate', async (message) => {
         return; // Exit after replying to avoid processing other commands
     }
 
-    if (message.content.toLowerCase() === '!quiz') {
+    if (message.content.toLowerCase() === 'quiz') {
         // Check if the user is already participating in a quiz
         if (activeQuizzes[message.author.id]) {
             return message.channel.send('You are already participating in a quiz! Please finish it before starting a new one.');
@@ -381,11 +381,11 @@ delete activeQuizzes[message.author.id];
         }
     } 
 
-    if (message.content.toLowerCase() === '!help') {
+    if (message.content.toLowerCase() === 'help') {
         help.execute(message);
     }   
 
-    if (message.content.toLowerCase() === '!resources') {
+    if (message.content.toLowerCase() === 'resources') {
         resources.execute(message);
     }
 }); 
