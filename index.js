@@ -1,3 +1,4 @@
+const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 // Active Quiz Tracking
 const activeQuizzes = {};
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
