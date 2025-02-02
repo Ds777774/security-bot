@@ -1,0 +1,22 @@
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "A multilingual quiz and vocabulary bot for Discord.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["discord", "bot", "quiz", "multilingual", "vocabulary"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^18.0.6",
+    "discord.js": "^14.17.3",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.1",
+    "moment-timezone": "^0.5.34",
+    "dotenv": "^10.0.0"
+  }
+}
