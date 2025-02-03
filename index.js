@@ -25,6 +25,7 @@ const modRank = require('./modrank'); // Adjust the path if necessary
 const updates = require('./commands/updates');
 const { handleBanCommand } = require('./banHandler');
 const { updateBotStatus } = require('./statusUpdater');
+const duel = require('./duel'); // Add this line
 
 // Environment Variables
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
@@ -139,6 +140,10 @@ client.on('messageCreate', async (message) => {
     if (message.content.toLowerCase() === '!modrank') {
         await modRank.execute(message); // Display the leaderboard
     } 
+
+if (message.content.toLowerCase().startsWith('!duel')) {
+  await duel.execute(message, message.content.split(' ').slice(1)); // Pass the message and arguments to duel.js
+}
 
     // Optional: Update mod rank when a moderator sends a message
     const moderatorRole = message.guild.roles.cache.find(role => role.name.toLowerCase() === 'moderator');
