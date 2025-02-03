@@ -82,8 +82,10 @@ module.exports = {
         // Initialize active duel data
         activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, detailedResults: { Blue: [], Red: [] }, selectedQuizData };
 
-        // Start the first team quiz
-        await startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
+        // Start the first team quiz after team formation embed is deleted
+        setTimeout(() => {
+            startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
+        }, 5000); // Delay quiz start for 5 seconds after deleting the team formation embed
     }
 };
 
@@ -157,13 +159,20 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
         const emojis = ['🇦', '🇧', '🇨', '🇩'];
         for (const emoji of emojis) await quizMessage.react(emoji);
 
+        const startTime = Date.now(); // Track start time
+
         const filter = (reaction, userReact) => emojis.includes(reaction.emoji.name) && userReact.id === playerId;
         const collected = await quizMessage.awaitReactions({ filter, max: 1, time: 12000 });
-        const userChoice = collected.first() ? emojis.indexOf(collected.first().emoji.name) : -1;
 
+        const endTime = Date.now(); // Track end time
+        const timeTaken = Math.floor((endTime - startTime) / 1000); // Time taken in seconds
+
+        if (collected.size === 0) continue; // If no reaction, skip this question
+
+        const userChoice = emojis.indexOf(collected.first().emoji.name);
         if (userChoice === correctIndex) score++;
 
-        totalTime += 12; // Add 12 seconds for each question
+        totalTime += timeTaken; // Add time taken for this question
         await quizMessage.delete(); // Delete the message after answering
     }
 
