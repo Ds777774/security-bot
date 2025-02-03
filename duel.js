@@ -1,6 +1,10 @@
 const { Client, EmbedBuilder } = require('discord.js');
 const { shuffleArray } = require('./utilities');
-const { germanQuizData, frenchQuizData, russianQuizData } = require('./index');
+// Import quiz data
+const { russianQuizData, russianWordList } = require('./russianData');
+const { germanQuizData, germanWordList } = require('./germanData');
+const { frenchQuizData, frenchWordList } = require('./frenchData');
+
 const activeDuels = {}; // Track ongoing duels
 
 module.exports = {
