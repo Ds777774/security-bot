@@ -11,8 +11,8 @@ client.on('message', async (message) => {
   if (message.content.startsWith('!duel')) {
     const players = message.mentions.users.map(user => user.id);
 
-    if (players.length < 4 || players.length > 9) {
-      return message.reply("Please ping between 4 to 9 players.");
+    if (players.length < 2 || players.length > 9) {
+      return message.reply("Please ping between 2 to 9 players.");
     }
 
     // Get team distribution based on leaderboard data
