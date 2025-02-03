@@ -77,7 +77,7 @@ module.exports = {
 
         await message.channel.send({ embeds: [teamFormationEmbed] }).then(msg => setTimeout(() => msg.delete(), 5000));
 
-        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, selectedQuizData };
+        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, detailedResults: { Blue: [], Red: [] }, selectedQuizData };
         await startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
     }
 };
@@ -90,6 +90,7 @@ async function startTeamQuiz(message, team, duelData) {
         const result = await askQuizQuestions(message, player, duelData.selectedQuizData);
         totalScore += result.score;
         totalTime += result.time;
+        duelData.detailedResults[team].push({ playerId: player, score: result.score, time: result.time });
     }
 
     duelData.scores[team] = totalScore;
@@ -100,10 +101,19 @@ async function startTeamQuiz(message, team, duelData) {
         .setDescription(`**Correct Answers:** ${totalScore}\n**Total Time Taken:** ${totalTime} seconds`)
         .setColor(team === 'Blue' ? '#3498db' : '#e74c3c');
 
+    duelData.detailedResults[team].forEach(playerResult => {
+        resultEmbed.addFields({
+            name: `<@${playerResult.playerId}>`,
+            value: `Score: ${playerResult.score}, Time: ${playerResult.time}s`,
+            inline: true
+        });
+    });
+
     await message.channel.send({ embeds: [resultEmbed] });
 
-    if (team === 'Blue') {
-        await message.channel.send(`**Red Team needs to score ${totalScore + 1} to win!**`);
+    const otherTeam = team === 'Blue' ? 'Red' : 'Blue';
+    await message.channel.send(`**${otherTeam} Team needs to score ${totalScore + 1} to win!**`);
+    if (otherTeam === 'Red') {
         await startTeamQuiz(message, 'Red', duelData);
     } else {
         const blueScore = duelData.scores['Blue'];
@@ -122,10 +132,11 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
     }
 
     const questions = selectedQuizData.slice(0, 5); // Get the first 5 questions
-    let score = 0, startTime = Date.now();
+    let score = 0, totalTime = 0;
 
     for (const question of questions) {
         const options = [...question.options];
+        shuffleArray(options); // Shuffle options each time
         const correctIndex = options.indexOf(question.correct);
         const embed = new EmbedBuilder()
             .setTitle('Quiz Question')
@@ -142,7 +153,9 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
 
         if (userChoice === correctIndex) score++;
         await quizMessage.delete();
+
+        totalTime += 12; // Add 12 seconds for each question
     }
 
-    return { score, time: Math.round((Date.now() - startTime) / 1000) };
+    return { score, time: totalTime };
 }
