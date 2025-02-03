@@ -1,74 +1,107 @@
-const { Client, MessageEmbed } = require('discord.js');
-const { getTeams, askQuestions, calculateTarget } = require('./logic');
-const pg = require('pg');
-const client = new Client();
-const db = new pg.Client('postgresql://neondb_owner:npg_4hwZrTGUJR2a@ep-orange-king-a839r2uc-pooler.eastus2.azure.neon.tech/neondb?sslmode=require');
+const { Client, EmbedBuilder } = require('discord.js');
+const { shuffleArray } = require('./utilities');
+const { germanQuizData, frenchQuizData, russianQuizData } = require('./index');
+const activeDuels = {}; // Track ongoing duels
 
-// Connect to the database
-db.connect();
+module.exports = {
+    name: 'duel',
+    description: 'Starts a team quiz duel!',
+    async execute(message) {
+        if (activeDuels[message.channel.id]) {
+            return message.channel.send('A duel is already in progress in this channel.');
+        }
 
-client.on('message', async (message) => {
-  if (message.content.startsWith('!duel')) {
-    const players = message.mentions.users.map(user => user.id);
+        const players = [];
+        const filter = (m) => m.mentions.users.size > 0 && m.author.id === message.author.id;
+        const embed = new EmbedBuilder()
+            .setTitle('Team Quiz Duel')
+            .setDescription('Mention users to form teams (max 10 players).')
+            .setColor('#acf508');
 
-    if (players.length < 2 || players.length > 9) {
-      return message.reply("Please ping between 2 to 9 players.");
+        const startMessage = await message.channel.send({ embeds: [embed] });
+        const collected = await message.channel.awaitMessages({ filter, max: 1, time: 30000 });
+        if (!collected.size) return message.channel.send('No users mentioned. Duel cancelled.');
+
+        collected.first().mentions.users.forEach((user) => players.push(user.id));
+
+        if (players.length < 2) return message.channel.send('At least 2 players required.');
+        if (players.length > 10) return message.channel.send('Max 10 players allowed.');
+
+        shuffleArray(players);
+        const mid = Math.ceil(players.length / 2);
+        const teamBlue = players.slice(0, mid);
+        const teamRed = players.slice(mid);
+
+        const startingTeam = Math.random() < 0.5 ? 'Blue' : 'Red';
+        const teamEmbed = new EmbedBuilder()
+            .setTitle('Teams Formed!')
+            .setDescription(`**Team Blue:** ${teamBlue.map(id => `<@${id}>`).join(', ')}\n**Team Red:** ${teamRed.map(id => `<@${id}>`).join(', ')}\n\n**${startingTeam} Team Starts!**`)
+            .setColor('#3498db');
+
+        await message.channel.send({ embeds: [teamEmbed] }).then(msg => setTimeout(() => msg.delete(), 10000));
+
+        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 } };
+        await startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
+    }
+};
+
+async function startTeamQuiz(message, team, duelData) {
+    const teamPlayers = team === 'Blue' ? duelData.teamBlue : duelData.teamRed;
+    let totalScore = 0, totalTime = 0;
+
+    for (const player of teamPlayers) {
+        const result = await askQuizQuestions(message, player);
+        totalScore += result.score;
+        totalTime += result.time;
     }
 
-    // Get team distribution based on leaderboard data
-    const { teamRed, teamBlue } = await getTeams(players, db);
+    duelData.scores[team] = totalScore;
+    duelData.times[team] = totalTime;
 
-    // Display teams
-    const teamEmbed = new MessageEmbed()
-      .setTitle('Teams')
-      .addField('Team Red', teamRed.join('\n'))
-      .addField('Team Blue', teamBlue.join('\n'))
-      .setColor('#00FF00');
-    
-    const teamMessage = await message.channel.send({ embeds: [teamEmbed] });
+    const resultEmbed = new EmbedBuilder()
+        .setTitle(`${team} Team Results`)
+        .setDescription(`**Correct Answers:** ${totalScore}\n**Total Time Taken:** ${totalTime} seconds`)
+        .setColor(team === 'Blue' ? '#3498db' : '#e74c3c');
 
-    // Wait for 10 seconds, then delete the teams message
-    setTimeout(() => teamMessage.delete(), 10000);
+    await message.channel.send({ embeds: [resultEmbed] });
 
-    // Ask for language selection via reactions
-    const languageEmbed = new MessageEmbed()
-      .setTitle('Select Language')
-      .setDescription('React with your flag to choose a language!');
-    
-    const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
+    if (team === 'Blue') {
+        await message.channel.send(`**Red Team needs to score ${totalScore + 1} to win!**`);
+        await startTeamQuiz(message, 'Red', duelData);
+    } else {
+        const blueScore = duelData.scores['Blue'];
+        const redScore = duelData.scores['Red'];
+        const winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : (duelData.times['Red'] < duelData.times['Blue'] ? 'Red' : 'Blue');
+        await message.channel.send(`**${winner} Team Wins!**`);
+        delete activeDuels[message.channel.id];
+    }
+}
 
-    // React with flags for language selection
-    const languages = ['🇩🇪', '🇬🇧', '🇫🇷', '🇪🇸']; // Example language flags
-    for (let flag of languages) {
-      await languageMessage.react(flag);
+async function askQuizQuestions(message, playerId) {
+    const user = await message.client.users.fetch(playerId);
+    const quizData = [germanQuizData, frenchQuizData, russianQuizData][Math.floor(Math.random() * 3)];
+    const questions = shuffleArray(Object.values(quizData).flat()).slice(0, 5);
+
+    let score = 0, startTime = Date.now();
+    for (const question of questions) {
+        const options = shuffleArray([...question.options]);
+        const correctIndex = options.indexOf(question.correct);
+        const embed = new EmbedBuilder()
+            .setTitle('Quiz Question')
+            .setDescription(`**${question.word}**\nA) ${options[0]}\nB) ${options[1]}\nC) ${options[2]}\nD) ${options[3]}`)
+            .setColor('#acf508');
+
+        const quizMessage = await message.channel.send({ content: `<@${playerId}>`, embeds: [embed] });
+        const emojis = ['🇦', '🇧', '🇨', '🇩'];
+        for (const emoji of emojis) await quizMessage.react(emoji);
+
+        const filter = (reaction, userReact) => emojis.includes(reaction.emoji.name) && userReact.id === playerId;
+        const collected = await quizMessage.awaitReactions({ filter, max: 1, time: 12000 });
+        const userChoice = collected.first() ? emojis.indexOf(collected.first().emoji.name) : -1;
+
+        if (userChoice === correctIndex) score++;
+        await quizMessage.delete();
     }
 
-    // Only the command sender can react
-    await languageMessage.awaitReactions({ max: 1, time: 60000, errors: ['time'], filter: (reaction, user) => user.id === message.author.id });
-
-    // Delete the message after the user reacts
-    await languageMessage.delete();
-
-    // Randomly choose starting team
-    const startingTeam = Math.random() > 0.5 ? 'Blue' : 'Red';
-    message.channel.send(`${startingTeam} team will start first!`);
-
-    // Ask questions based on players' quiz data and record responses
-    const results = await askQuestions(teamRed, teamBlue, db);
-
-    // Calculate target score for the chasing team
-    const targetScore = calculateTarget(results.blue);
-
-    // Show the target and results
-    const resultEmbed = new MessageEmbed()
-      .setTitle('Results')
-      .addField('Team Blue', `${results.blue.correct}/${results.blue.total} in ${results.blue.time}s`)
-      .addField('Team Red', `${results.red.correct}/${results.red.total} in ${results.red.time}s`)
-      .addField('Target for Red Team', targetScore.toString())
-      .setColor('#FF0000');
-
-    message.channel.send({ embeds: [resultEmbed] });
-  }
-});
-
-client.login('DISCORD_TOKEN');
+    return { score, time: Math.round((Date.now() - startTime) / 1000) };
+}
