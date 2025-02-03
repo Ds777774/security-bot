@@ -1,11 +1,6 @@
-// duel.js
 const { EmbedBuilder } = require('discord.js');
 const { getLeaderboardData } = require('./leaderboard'); // Correct import
-
-// Import quiz data
-const { russianQuizData } = require('./russianData');
-const { germanQuizData } = require('./germanData');
-const { frenchQuizData } = require('./frenchData');
+const { getQuestions } = require('./logic'); // Import logic.js for question fetching
 
 module.exports = {
   name: 'duel',
@@ -57,7 +52,7 @@ module.exports = {
     // Ask the first question
     const askQuestions = async (team, teamName) => {
       for (let player of team) {
-        const questions = await getQuestionsForPlayer(player);
+        const questions = await getQuestions(player);
         let score = 0;
         const startTime = Date.now();
 
@@ -92,13 +87,6 @@ module.exports = {
           .setColor('#acf508');
         await message.channel.send({ embeds: [playerResultEmbed] });
       }
-    };
-
-    // Get questions based on leaderboard performance
-    const getQuestionsForPlayer = async (player) => {
-      // Assuming player.language and player.level exist
-      const levelQuestions = await getQuestions(player.language, player.level); // This function should fetch questions from your quiz data
-      return shuffleArray(levelQuestions).slice(0, 5); // Ask 5 questions
     };
 
     // Duel logic
