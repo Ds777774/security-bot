@@ -114,6 +114,11 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
         return message.channel.send(`<@${playerId}>, there was an error loading the quiz questions.`);
     }
 
+    // Check if selectedQuizData is an array and has elements
+    if (!Array.isArray(selectedQuizData) || selectedQuizData.length === 0) {
+        return message.channel.send('The quiz data is empty or not properly formatted.');
+    }
+
     const questions = shuffleArray(selectedQuizData).slice(0, 5);
     let score = 0, startTime = Date.now();
 
