@@ -26,6 +26,8 @@ const updates = require('./commands/updates');
 const { handleBanCommand } = require('./banHandler');
 const { updateBotStatus } = require('./statusUpdater');
 
+const duel = require('./duel');
+
 // Environment Variables
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 
@@ -129,6 +131,19 @@ Object.keys(wordOfTheDayTimes).forEach((language) => {
 // Check if the message is badwords in any language
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+
+
+
+
+
+if (message.content.toLowerCase() === '!duel') {
+    duel.execute(message);
+}
+
+
+
+
+
 
     await handleBanCommand(message);
 
