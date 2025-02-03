@@ -86,6 +86,7 @@ async function startTeamQuiz(message, team, duelData) {
     const teamPlayers = team === 'Blue' ? duelData.teamBlue : duelData.teamRed;
     let totalScore = 0, totalTime = 0;
 
+    // Track the time taken by the team for each player
     for (const player of teamPlayers) {
         const result = await askQuizQuestions(message, player, duelData.selectedQuizData);
         totalScore += result.score;
@@ -96,6 +97,7 @@ async function startTeamQuiz(message, team, duelData) {
     duelData.scores[team] = totalScore;
     duelData.times[team] = totalTime;
 
+    // Send the results for the team that just completed the quiz
     const resultEmbed = new EmbedBuilder()
         .setTitle(`${team} Team Results`)
         .setDescription(`**Correct Answers:** ${totalScore}\n**Total Time Taken:** ${totalTime} seconds`)
@@ -111,16 +113,31 @@ async function startTeamQuiz(message, team, duelData) {
 
     await message.channel.send({ embeds: [resultEmbed] });
 
+    // Set target score for the other team
     const otherTeam = team === 'Blue' ? 'Red' : 'Blue';
     await message.channel.send(`**${otherTeam} Team needs to score ${totalScore + 1} to win!**`);
+
+    // After the first team finishes, start the second team
     if (otherTeam === 'Red') {
         await startTeamQuiz(message, 'Red', duelData);
     } else {
+        // Once the second team finishes, determine the winner
         const blueScore = duelData.scores['Blue'];
         const redScore = duelData.scores['Red'];
         const winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : (duelData.times['Red'] < duelData.times['Blue'] ? 'Red' : 'Blue');
-        await message.channel.send(`**${winner} Team Wins!**`);
-        delete activeDuels[message.channel.id];
+
+        // Show the final results with the winner or loser
+        const finalEmbed = new EmbedBuilder()
+            .setTitle(`Final Result: ${winner} Team Wins!`)
+            .setDescription(`**Blue Team**: ${blueScore} points, Time: ${duelData.times['Blue']}s\n**Red Team**: ${redScore} points, Time: ${duelData.times['Red']}s`)
+            .setColor(winner === 'Blue' ? '#3498db' : '#e74c3c')
+            .addFields(
+                { name: `**${winner === 'Blue' ? 'Blue' : 'Red'} Team Wins!**`, value: `**${winner === 'Blue' ? 'Red' : 'Blue'} Team Lost!**`, inline: false }
+            );
+
+        await message.channel.send({ embeds: [finalEmbed] });
+
+        delete activeDuels[message.channel.id]; // End the duel
     }
 }
 
@@ -136,8 +153,10 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
 
     for (const question of questions) {
         const options = [...question.options];
+        const correctOption = options[0]; // The correct option is always the first option
         shuffleArray(options); // Shuffle options each time
-        const correctIndex = options.indexOf(question.correct);
+
+        const correctIndex = options.indexOf(correctOption); // Get the new index of the correct option
         const embed = new EmbedBuilder()
             .setTitle('Quiz Question')
             .setDescription(`**${question.word}**\nA) ${options[0]}\nB) ${options[1]}\nC) ${options[2]}\nD) ${options[3]}`)
@@ -152,10 +171,10 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
         const userChoice = collected.first() ? emojis.indexOf(collected.first().emoji.name) : -1;
 
         if (userChoice === correctIndex) score++;
-        await quizMessage.delete();
 
         totalTime += 12; // Add 12 seconds for each question
+        await quizMessage.delete(); // Delete the message after answering
     }
 
-    return { score, time: totalTime };
+    return { score, time: totalTime }; // Return score and total time taken
 }
