@@ -82,45 +82,50 @@ async function startTeamQuiz(message, team, duelData) {
 
 async function askQuizQuestions(message, playerId) {
     const user = await message.client.users.fetch(playerId);
-    const languages = ['german', 'french', 'russian'];
-    const selectedLanguage = languages[Math.floor(Math.random() * languages.length)];
-    const selectedLevel = 'beginner'; // Default level
+    const languageOptions = ['german', 'french', 'russian'];
+    const selectedLanguage = languageOptions[Math.floor(Math.random() * languageOptions.length)];
 
-    let quizData;
+    let selectedQuizData;
     if (selectedLanguage === 'german') {
-        quizData = germanQuizData;
+        selectedQuizData = germanQuizData;
     } else if (selectedLanguage === 'french') {
-        quizData = frenchQuizData;
-    } else if (selectedLanguage === 'russian') {
-        quizData = russianQuizData;
+        selectedQuizData = frenchQuizData;
+    } else {
+        selectedQuizData = russianQuizData;
     }
 
-    if (!quizData || !quizData[selectedLevel]) {
+    const levelOptions = Object.keys(selectedQuizData);
+    const selectedLevel = levelOptions[Math.floor(Math.random() * levelOptions.length)];
+
+    if (!selectedQuizData[selectedLevel]) {
         return message.channel.send(`<@${playerId}>, no quiz data available for level ${selectedLevel} in ${selectedLanguage}.`);
     }
 
-    const questions = shuffleArray(quizData[selectedLevel]).slice(0, 5);
+    const questions = shuffleArray(selectedQuizData[selectedLevel]).slice(0, 5);
+    if (questions.length === 0) {
+        return message.channel.send(`<@${playerId}>, there are no questions for level ${selectedLevel} in ${selectedLanguage}.`);
+    }
+
     let score = 0, startTime = Date.now();
+    const emojis = ['🇦', '🇧', '🇨', '🇩'];
 
     for (const question of questions) {
         const options = shuffleArray([...question.options]);
         const correctIndex = options.indexOf(question.correct);
-
         const embed = new EmbedBuilder()
-            .setTitle(`**${selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)} Vocabulary Quiz**`)
-            .setDescription(`What is the English meaning of **"${question.word}"**?\n\n` +
-                `A) ${options[0]}\nB) ${options[1]}\nC) ${options[2]}\nD) ${options[3]}`)
+            .setTitle(`${selectedLanguage.toUpperCase()} Quiz - Level ${selectedLevel.toUpperCase()}`)
+            .setDescription(`**${question.word}**\nA) ${options[0]}\nB) ${options[1]}\nC) ${options[2]}\nD) ${options[3]}`)
             .setColor('#acf508');
 
         const quizMessage = await message.channel.send({ content: `<@${playerId}>`, embeds: [embed] });
-        const emojis = ['🇦', '🇧', '🇨', '🇩'];
         for (const emoji of emojis) await quizMessage.react(emoji);
 
         const filter = (reaction, userReact) => emojis.includes(reaction.emoji.name) && userReact.id === playerId;
         const collected = await quizMessage.awaitReactions({ filter, max: 1, time: 12000 });
-        const userChoice = collected.first() ? emojis.indexOf(collected.first().emoji.name) : -1;
 
+        const userChoice = collected.first() ? emojis.indexOf(collected.first().emoji.name) : -1;
         if (userChoice === correctIndex) score++;
+
         await quizMessage.delete();
     }
 
