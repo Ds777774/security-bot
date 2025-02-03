@@ -1,4 +1,4 @@
-const { Client, EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { russianQuizData } = require('./russianD');
 const { germanQuizData } = require('./germanD');
 const { frenchQuizData } = require('./frenchD');
