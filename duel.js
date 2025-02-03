@@ -1,6 +1,11 @@
+// duel.js
 const { EmbedBuilder } = require('discord.js');
-const { getLeaderboardData } = require('./leaderboard'); // Import leaderboard logic
-const { shuffleArray } = require('./utilities'); // Ensure you have the shuffle function
+const { getLeaderboardData } = require('./leaderboard'); // Correct import
+
+// Import quiz data
+const { russianQuizData } = require('./russianData');
+const { germanQuizData } = require('./germanData');
+const { frenchQuizData } = require('./frenchData');
 
 module.exports = {
   name: 'duel',
@@ -13,10 +18,10 @@ module.exports = {
     }
 
     // Get leaderboard data for the players
-    const leaderboardData = await getLeaderboardData(mentionedUsers);
+    const leaderboardData = await getLeaderboardData(mentionedUsers); // Fetch the data
 
     // Sort players by their quiz performance
-    const sortedPlayers = leaderboardData.sort((a, b) => b.score - a.score);
+    const sortedPlayers = leaderboardData.sort((a, b) => b.points - a.points);  // Using points for sorting
     let teamSize = [];
     
     // Even out the teams with 2 players (1 in each team)
