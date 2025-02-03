@@ -14,33 +14,39 @@ module.exports = {
             return message.channel.send('A duel is already in progress in this channel.');
         }
 
-        // Ask user to select a language
+        // Step 1: Choose Language
         const languageEmbed = new EmbedBuilder()
-            .setTitle('Select a Language')
-            .setDescription('React with the corresponding emoji:\n🇩 - German\n🇷 - Russian\n🇫 - French')
+            .setTitle('Choose a Language for the Quiz')
+            .setDescription('React to select the language:\n\n🇩🇪: German\n🇫🇷: French\n🇷🇺: Russian')
             .setColor('#acf508');
 
         const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
-        await languageMessage.react('🇩'); // German
-        await languageMessage.react('🇷'); // Russian
-        await languageMessage.react('🇫'); // French
+        const languageEmojis = ['🇩🇪', '🇫🇷', '🇷🇺'];
+        const languages = ['german', 'french', 'russian'];
 
-        const filter = (reaction, user) => ['🇩', '🇷', '🇫'].includes(reaction.emoji.name) && user.id === message.author.id;
-        const collected = await languageMessage.awaitReactions({ filter, max: 1, time: 30000 });
+        for (const emoji of languageEmojis) {
+            await languageMessage.react(emoji);
+        }
 
-        if (!collected.size) {
+        const languageReaction = await languageMessage.awaitReactions({
+            filter: (reaction, user) => languageEmojis.includes(reaction.emoji.name) && user.id === message.author.id,
+            max: 1,
+            time: 15000,
+        });
+
+        if (!languageReaction.size) {
+            try {
+                await languageMessage.delete();  // Ensure the message is deleted after timeout
+            } catch (err) {
+                console.error('Error deleting message:', err);  // Catch potential errors
+            }
             return message.channel.send('No language selected. Duel cancelled.');
         }
 
-        let selectedQuizData;
-        const reaction = collected.first().emoji.name;
-        if (reaction === '🇩') selectedQuizData = germanQuizData;
-        else if (reaction === '🇷') selectedQuizData = russianQuizData;
-        else if (reaction === '🇫') selectedQuizData = frenchQuizData;
-
+        const selectedLanguage = languages[languageEmojis.indexOf(languageReaction.first().emoji.name)];
         await languageMessage.delete();
 
-        // Collect players for the duel
+        // Step 2: Form Teams
         const players = [];
         const mentionFilter = (m) => m.mentions.users.size > 0 && m.author.id === message.author.id;
         const teamEmbed = new EmbedBuilder()
@@ -70,7 +76,7 @@ module.exports = {
 
         await message.channel.send({ embeds: [teamFormationEmbed] }).then(msg => setTimeout(() => msg.delete(), 5000));
 
-        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, selectedQuizData };
+        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, selectedLanguage };
         await startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
     }
 };
@@ -78,9 +84,14 @@ module.exports = {
 async function startTeamQuiz(message, team, duelData) {
     const teamPlayers = team === 'Blue' ? duelData.teamBlue : duelData.teamRed;
     let totalScore = 0, totalTime = 0;
+    let selectedQuizData;
+
+    if (duelData.selectedLanguage === 'german') selectedQuizData = germanQuizData;
+    else if (duelData.selectedLanguage === 'french') selectedQuizData = frenchQuizData;
+    else if (duelData.selectedLanguage === 'russian') selectedQuizData = russianQuizData;
 
     for (const player of teamPlayers) {
-        const result = await askQuizQuestions(message, player, duelData.selectedQuizData);
+        const result = await askQuizQuestions(message, player, selectedQuizData);
         totalScore += result.score;
         totalTime += result.time;
     }
@@ -112,11 +123,6 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
     
     if (!selectedQuizData || selectedQuizData.length === 0) {
         return message.channel.send(`<@${playerId}>, there was an error loading the quiz questions.`);
-    }
-
-    // Check if selectedQuizData is an array and has elements
-    if (!Array.isArray(selectedQuizData) || selectedQuizData.length === 0) {
-        return message.channel.send('The quiz data is empty or not properly formatted.');
     }
 
     const questions = shuffleArray(selectedQuizData).slice(0, 5);
