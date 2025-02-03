@@ -2,11 +2,6 @@ const { EmbedBuilder } = require('discord.js');
 const { getLeaderboardData } = require('./leaderboard'); // Import leaderboard logic
 const { shuffleArray } = require('./utilities'); // Ensure you have the shuffle function
 
-// Import quiz data
-const { russianQuizData } = require('./russianData');
-const { germanQuizData } = require('./germanData');
-const { frenchQuizData } = require('./frenchData');
-
 module.exports = {
   name: 'duel',
   description: 'A competitive quiz game between two teams based on quiz scores.',
