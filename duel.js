@@ -21,8 +21,6 @@ module.exports = {
             return message.channel.send('A duel is already in progress in this channel.');
         }
 
-        activeDuels[message.channel.id] = true; // Mark duel as active
-
         // Ask user to select a language
         const languageEmbed = new EmbedBuilder()
             .setTitle('Select a Language')
@@ -38,7 +36,6 @@ module.exports = {
         const collected = await languageMessage.awaitReactions({ filter, max: 1, time: 30000 });
 
         if (!collected.size) {
-            delete activeDuels[message.channel.id]; // Free up the channel for another duel
             return message.channel.send('No language selected. Duel cancelled.');
         }
 
@@ -61,23 +58,11 @@ module.exports = {
         const startMessage = await message.channel.send({ embeds: [teamEmbed] });
         const collectedPlayers = await message.channel.awaitMessages({ filter: mentionFilter, max: 1, time: 30000 });
 
-        if (!collectedPlayers.size) {
-            delete activeDuels[message.channel.id];
-            return message.channel.send('No users mentioned. Duel cancelled.');
-        }
-
-        await startMessage.delete(); // ❗ DELETE "Team Quiz Duel" embed BEFORE mentioning players
-
+        if (!collectedPlayers.size) return message.channel.send('No users mentioned. Duel cancelled.');
         collectedPlayers.first().mentions.users.forEach((user) => players.push(user.id));
 
-        if (players.length < 2) {
-            delete activeDuels[message.channel.id];
-            return message.channel.send('At least 2 players required.');
-        }
-        if (players.length > 10) {
-            delete activeDuels[message.channel.id];
-            return message.channel.send('Max 10 players allowed.');
-        }
+        if (players.length < 2) return message.channel.send('At least 2 players required.');
+        if (players.length > 10) return message.channel.send('Max 10 players allowed.');
 
         shuffleArray(players);
         const mid = Math.ceil(players.length / 2);
@@ -95,11 +80,11 @@ module.exports = {
         setTimeout(() => teamFormationMessage.delete(), 5000);
 
         // Initialize active duel data
-        const duelData = { teamBlue, teamRed, scores: {}, times: {}, selectedQuizData, firstTeam: startingTeam };
+        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: {}, times: {}, detailedResults: {}, selectedQuizData, firstTeam: startingTeam };
 
         // Start first team quiz after team formation embed is deleted
         setTimeout(() => {
-            startTeamQuiz(message, startingTeam, duelData);
+            startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
         }, 5000);
     }
 };
@@ -112,6 +97,7 @@ async function startTeamQuiz(message, team, duelData) {
         const result = await askQuizQuestions(message, player, duelData.selectedQuizData);
         totalScore += result.score;
         totalTime += result.time;
+        duelData.detailedResults[team] = { score: totalScore, time: totalTime };
     }
 
     duelData.scores[team] = totalScore;
@@ -122,18 +108,12 @@ async function startTeamQuiz(message, team, duelData) {
         .setDescription(`**Correct Answers:** ${totalScore}\n**Total Time Taken:** ${totalTime} seconds`)
         .setColor(team === 'Blue' ? '#3498db' : '#e74c3c');
 
-    if (!duelData.scores[duelData.firstTeam]) {
-        const otherTeam = team === 'Blue' ? 'Red' : 'Blue';
-        resultEmbed.addFields({ name: `${otherTeam} Team needs ${totalScore + 1} to win!`, value: '\u200B' });
-    }
-
     const resultMessage = await message.channel.send({ embeds: [resultEmbed] });
     setTimeout(() => resultMessage.delete(), 5000);
 
-    // If this was the first team, start second team's quiz, otherwise show final result
-    const otherTeam = team === 'Blue' ? 'Red' : 'Blue';
-    if (!duelData.scores[otherTeam]) {
-        setTimeout(() => startTeamQuiz(message, otherTeam, duelData), 5000);
+    // If first team finished, start second team quiz
+    if (!duelData.scores[team === 'Blue' ? 'Red' : 'Blue']) {
+        setTimeout(() => startTeamQuiz(message, team === 'Blue' ? 'Red' : 'Blue', duelData), 5000);
     } else {
         setTimeout(() => showFinalResult(message, duelData), 5000);
     }
@@ -150,7 +130,8 @@ async function showFinalResult(message, duelData) {
 
     await message.channel.send({ embeds: [finalResultEmbed] });
 
-    delete activeDuels[message.channel.id]; // ❗ Free up the channel for new duels
+    // Reset duel after completion
+    delete activeDuels[message.channel.id];
 }
 
 async function askQuizQuestions(message, playerId, selectedQuizData) {
@@ -158,23 +139,32 @@ async function askQuizQuestions(message, playerId, selectedQuizData) {
     const questions = selectedQuizData.slice(0, 5);
     let score = 0, totalTime = 0;
 
+    const emojis = ['🇦', '🇧', '🇨', '🇩'];
+
     for (const question of questions) {
         const options = [...question.options];
         shuffleArray(options);
-        const correctIndex = options.indexOf(question.options[0]);
+
+        const correctAnswer = question.options[0];
+        const correctIndex = options.indexOf(correctAnswer);
 
         const embed = new EmbedBuilder()
             .setTitle('Quiz Question')
-            .setDescription(`**${question.word}**\nA) ${options[0]}\nB) ${options[1]}\nC) ${options[2]}\nD) ${options[3]}`)
+            .setDescription(`**${question.word}**\n🇦 ${options[0]}\n🇧 ${options[1]}\n🇨 ${options[2]}\n🇩 ${options[3]}`)
             .setColor('#acf508');
 
         const quizMessage = await message.channel.send({ content: `<@${playerId}>`, embeds: [embed] });
 
+        for (const emoji of emojis) {
+            await quizMessage.react(emoji);
+        }
+
         const startTime = Date.now();
         const collected = await quizMessage.awaitReactions({ max: 1, time: 12000 });
-        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
 
-        if (collected.size && collected.first().emoji.name === correctIndex) score++;
+        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+        if (collected.size && emojis.indexOf(collected.first().emoji.name) === correctIndex) score++;
+
         totalTime += timeTaken;
         await quizMessage.delete();
     }
