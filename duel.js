@@ -1,8 +1,7 @@
 const { Client, EmbedBuilder } = require('discord.js');
-const { shuffleArray } = require('./utilities');
-const { russianQuizData } = require('./russianD');
 const { germanQuizData } = require('./germanD');
 const { frenchQuizData } = require('./frenchD');
+const { russianQuizData } = require('./russianD');
 
 const activeDuels = {}; // Track ongoing duels
 
@@ -90,8 +89,11 @@ async function startTeamQuiz(message, team, duelData) {
     else if (duelData.selectedLanguage === 'french') selectedQuizData = frenchQuizData;
     else if (duelData.selectedLanguage === 'russian') selectedQuizData = russianQuizData;
 
+    // Use the direct data without shuffling or selecting random questions
+    const questions = selectedQuizData;  // Use all the questions from the selected language directly
+
     for (const player of teamPlayers) {
-        const result = await askQuizQuestions(message, player, selectedQuizData);
+        const result = await askQuizQuestions(message, player, questions);
         totalScore += result.score;
         totalTime += result.time;
     }
@@ -118,18 +120,17 @@ async function startTeamQuiz(message, team, duelData) {
     }
 }
 
-async function askQuizQuestions(message, playerId, selectedQuizData) {
+async function askQuizQuestions(message, playerId, questions) {
     const user = await message.client.users.fetch(playerId);
     
-    if (!selectedQuizData || selectedQuizData.length === 0) {
+    if (!questions || questions.length === 0) {
         return message.channel.send(`<@${playerId}>, there was an error loading the quiz questions.`);
     }
 
-    const questions = shuffleArray(selectedQuizData).slice(0, 5);
     let score = 0, startTime = Date.now();
 
     for (const question of questions) {
-        const options = shuffleArray([...question.options]);
+        const options = [...question.options]; // No shuffle, just use the order in the data
         const correctIndex = options.indexOf(question.correct);
         const embed = new EmbedBuilder()
             .setTitle('Quiz Question')
