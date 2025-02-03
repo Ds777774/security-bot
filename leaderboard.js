@@ -57,6 +57,30 @@ module.exports.updateLeaderboard = async (username, language, level, points) => 
     }
 };
 
+
+// Function to fetch leaderboard data for mentioned users
+module.exports.getLeaderboardData = async (mentionedUsers) => {
+    try {
+        const client = await pool.connect();
+        
+        // Fetch data for the mentioned users based on their usernames
+        const query = `SELECT username, language, level, points 
+                       FROM leaderboard 
+                       WHERE username = ANY($1)`;
+
+        const result = await client.query(query, [mentionedUsers]);
+        client.release();
+
+        // Return the result rows
+        return result.rows;
+    } catch (err) {
+        console.error('Error fetching leaderboard data:', err);
+        throw err;
+    }
+};
+
+
+
 // Function to fetch and display the leaderboard
 module.exports.execute = async (message) => {
     try {
