@@ -75,9 +75,14 @@ module.exports = {
             .setDescription(`**Team Blue:** ${teamBlue.map(id => `<@${id}>`).join(', ')}\n**Team Red:** ${teamRed.map(id => `<@${id}>`).join(', ')}\n\n**${startingTeam} Team Starts!**`)
             .setColor('#3498db');
 
-        await message.channel.send({ embeds: [teamFormationEmbed] }).then(msg => setTimeout(() => msg.delete(), 5000));
+        // Send team formation and delete after 5 seconds
+        const teamFormationMessage = await message.channel.send({ embeds: [teamFormationEmbed] });
+        setTimeout(() => teamFormationMessage.delete(), 5000);
 
+        // Initialize active duel data
         activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, detailedResults: { Blue: [], Red: [] }, selectedQuizData };
+
+        // Start the first team quiz
         await startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
     }
 };
@@ -118,36 +123,18 @@ async function startTeamQuiz(message, team, duelData) {
     resultEmbed.addFields({ name: `${otherTeam} Team needs ${totalScore + 1} to win!`, value: '\u200B' });
 
     await resultMessage.edit({ embeds: [resultEmbed] });
-    await setTimeout(() => resultMessage.delete(), 5000); // Delete first team's result after 5 seconds
+    setTimeout(() => resultMessage.delete(), 5000); // Delete first team's result after 5 seconds
 
-    // After the first team finishes, start the second team
-    if (otherTeam === 'Red') {
-        await startTeamQuiz(message, 'Red', duelData);
-    } else {
-        // Once the second team finishes, determine the winner
-        const blueScore = duelData.scores['Blue'];
-        const redScore = duelData.scores['Red'];
-        const winner = redScore > blueScore ? 'Red' : blueScore > redScore ? 'Blue' : (duelData.times['Red'] < duelData.times['Blue'] ? 'Red' : 'Blue');
-
-        // Show the final results with the winner or loser
-        const finalEmbed = new EmbedBuilder()
-            .setTitle(`${winner} Team Wins!`)
-            .setDescription(`**Blue Team**: ${blueScore} points, Time: ${duelData.times['Blue']}s\n**Red Team**: ${redScore} points, Time: ${duelData.times['Red']}s`)
-            .setColor(winner === 'Blue' ? '#3498db' : '#e74c3c')
-            .addFields(
-                { name: `**${winner === 'Blue' ? 'Blue' : 'Red'} Team Wins!**`, value: `**${winner === 'Blue' ? 'Red' : 'Blue'} Team Lost!**`, inline: false }
-            );
-
-        const finalResultMessage = await message.channel.send({ embeds: [finalEmbed] });
-        await setTimeout(() => finalResultMessage.delete(), 5000); // Delete the final result after 5 seconds
-
-        delete activeDuels[message.channel.id]; // End the duel
-    }
+    // Start second team's quiz after the first team results are deleted
+    setTimeout(() => {
+        const nextTeam = otherTeam === 'Red' ? 'Red' : 'Blue';
+        startTeamQuiz(message, nextTeam, duelData);
+    }, 5000); // Start second team after 5 seconds delay
 }
 
 async function askQuizQuestions(message, playerId, selectedQuizData) {
     const user = await message.client.users.fetch(playerId);
-    
+
     if (!selectedQuizData || selectedQuizData.length === 0) {
         return message.channel.send(`<@${playerId}>, there was an error loading the quiz questions.`);
     }
