@@ -95,13 +95,14 @@ async function askQuizQuestions(message, playerId) {
     }
 
     const levelOptions = Object.keys(selectedQuizData);
-    const selectedLevel = levelOptions[Math.floor(Math.random() * levelOptions.length)];
+    let selectedLevel = levelOptions.length > 0 ? levelOptions[Math.floor(Math.random() * levelOptions.length)] : null;
 
-    if (!selectedQuizData[selectedLevel]) {
-        return message.channel.send(`<@${playerId}>, no quiz data available for level ${selectedLevel} in ${selectedLanguage}.`);
+    if (!selectedLevel || !selectedQuizData[selectedLevel] || selectedQuizData[selectedLevel].length === 0) {
+        console.log(`Error: No valid questions for ${selectedLanguage} at level ${selectedLevel}`);
+        return message.channel.send(`<@${playerId}>, no valid quiz data found for ${selectedLanguage} at level ${selectedLevel}.`);
     }
 
-    const questions = shuffleArray(selectedQuizData[selectedLevel]).slice(0, 5);
+    const questions = shuffleArray([...selectedQuizData[selectedLevel]]).slice(0, 5);
     if (questions.length === 0) {
         return message.channel.send(`<@${playerId}>, there are no questions for level ${selectedLevel} in ${selectedLanguage}.`);
     }
