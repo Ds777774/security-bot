@@ -1,137 +1,74 @@
-const { EmbedBuilder } = require('discord.js');
-const { getLeaderboardData } = require('./leaderboard'); // Correct import
-const { getQuestions } = require('./logic'); // Import logic.js for question fetching
+const { Client, MessageEmbed } = require('discord.js');
+const { getTeams, askQuestions, calculateTarget } = require('./logic');
+const pg = require('pg');
+const client = new Client();
+const db = new pg.Client('postgresql://neondb_owner:npg_4hwZrTGUJR2a@ep-orange-king-a839r2uc-pooler.eastus2.azure.neon.tech/neondb?sslmode=require');
 
-module.exports = {
-  name: 'duel',
-  description: 'A competitive quiz game between two teams based on quiz scores.',
-  async execute(message, args) {
-    const mentionedUsers = args.filter(arg => arg.startsWith('<@') && arg.endsWith('>')).map(arg => arg.replace(/[<@!>]/g, ''));
+// Connect to the database
+db.connect();
 
-    if (mentionedUsers.length < 2) {
-      return message.channel.send('You need at least 2 players to start a duel.');
+client.on('message', async (message) => {
+  if (message.content.startsWith('!duel')) {
+    const players = message.mentions.users.map(user => user.id);
+
+    if (players.length < 4 || players.length > 9) {
+      return message.reply("Please ping between 4 to 9 players.");
     }
 
-    // Get leaderboard data for the players
-    const leaderboardData = await getLeaderboardData(mentionedUsers); // Fetch the data
+    // Get team distribution based on leaderboard data
+    const { teamRed, teamBlue } = await getTeams(players, db);
 
-    // Sort players by their quiz performance
-    const sortedPlayers = leaderboardData.sort((a, b) => b.points - a.points);  // Using points for sorting
-    let teamSize = [];
+    // Display teams
+    const teamEmbed = new MessageEmbed()
+      .setTitle('Teams')
+      .addField('Team Red', teamRed.join('\n'))
+      .addField('Team Blue', teamBlue.join('\n'))
+      .setColor('#00FF00');
     
-    // Even out the teams with 2 players (1 in each team)
-    if (mentionedUsers.length === 2) {
-      teamSize = [1, 1]; // 1 player per team
-    } else {
-      teamSize = mentionedUsers.length === 5 ? [2, 3] : [Math.floor(mentionedUsers.length / 2), Math.ceil(mentionedUsers.length / 2)];
-    }
-
-    const teamRed = sortedPlayers.slice(0, teamSize[0]);
-    const teamBlue = sortedPlayers.slice(teamSize[0]);
-
-    // Generate the embed showing the teams
-    const teamEmbed = new EmbedBuilder()
-      .setTitle('Team Formation')
-      .setDescription(`**Team Red**: ${teamRed.map(player => player.username).join(', ')}\n**Team Blue**: ${teamBlue.map(player => player.username).join(', ')}`)
-      .setColor('#ff0000')
-      .setFooter({ text: 'Teams formed. Get ready to duel!' });
     const teamMessage = await message.channel.send({ embeds: [teamEmbed] });
 
-    // Wait for 10 seconds before deleting the message
+    // Wait for 10 seconds, then delete the teams message
     setTimeout(() => teamMessage.delete(), 10000);
 
-    // Randomly decide which team will start
-    const startingTeam = Math.random() < 0.5 ? 'Blue' : 'Red';
-    const startingEmbed = new EmbedBuilder()
-      .setTitle(`${startingTeam} Team Starts First`)
-      .setDescription(`${startingTeam} team will begin answering questions!`)
-      .setColor('#acf508');
+    // Ask for language selection via reactions
+    const languageEmbed = new MessageEmbed()
+      .setTitle('Select Language')
+      .setDescription('React with your flag to choose a language!');
+    
+    const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
 
-    await message.channel.send({ embeds: [startingEmbed] });
-
-    // Ask the first question
-    const askQuestions = async (team, teamName) => {
-      for (let player of team) {
-        const questions = await getQuestions(player);
-        let score = 0;
-        const startTime = Date.now();
-
-        for (let question of questions) {
-          const questionEmbed = new EmbedBuilder()
-            .setTitle(`**${teamName} Quiz**`)
-            .setDescription(question.prompt)
-            .setColor('#0099ff');
-
-          const quizMessage = await message.channel.send({ embeds: [questionEmbed] });
-          const answerReaction = await quizMessage.awaitReactions({
-            filter: (reaction, user) => user.id === player.userId && ['🇦', '🇧', '🇨', '🇩'].includes(reaction.emoji.name),
-            max: 1,
-            time: 12000,
-          });
-
-          if (answerReaction.size > 0 && answerReaction.first().emoji.name === question.correctAnswer) {
-            score++;
-          }
-
-          await quizMessage.delete(); // Delete the message after answering
-        }
-
-        const timeTaken = (Date.now() - startTime) / 1000; // in seconds
-        player.score = score;
-        player.timeTaken = timeTaken;
-
-        // Send score and time for this player
-        const playerResultEmbed = new EmbedBuilder()
-          .setTitle(`${player.username}'s Results`)
-          .setDescription(`You scored **${score}/5** in **${timeTaken}s**.`)
-          .setColor('#acf508');
-        await message.channel.send({ embeds: [playerResultEmbed] });
-      }
-    };
-
-    // Duel logic
-    await askQuestions(teamRed, 'Red');
-    await askQuestions(teamBlue, 'Blue');
-
-    // Calculate results and determine winner
-    const redTeamScore = teamRed.reduce((acc, player) => acc + player.score, 0);
-    const blueTeamScore = teamBlue.reduce((acc, player) => acc + player.score, 0);
-
-    let winnerTeam;
-    let resultEmbed;
-
-    if (redTeamScore > blueTeamScore) {
-      winnerTeam = 'Red';
-      resultEmbed = new EmbedBuilder()
-        .setTitle('Red Team Wins!')
-        .setDescription(`Red Team scored **${redTeamScore}** points!`)
-        .setColor('#ff0000');
-    } else if (blueTeamScore > redTeamScore) {
-      winnerTeam = 'Blue';
-      resultEmbed = new EmbedBuilder()
-        .setTitle('Blue Team Wins!')
-        .setDescription(`Blue Team scored **${blueTeamScore}** points!`)
-        .setColor('#0000ff');
-    } else {
-      // Tie-breaker based on time
-      const redTeamTime = teamRed.reduce((acc, player) => acc + player.timeTaken, 0);
-      const blueTeamTime = teamBlue.reduce((acc, player) => acc + player.timeTaken, 0);
-
-      if (redTeamTime < blueTeamTime) {
-        winnerTeam = 'Red';
-        resultEmbed = new EmbedBuilder()
-          .setTitle('Red Team Wins by Time!')
-          .setDescription(`Red Team took **${redTeamTime}s** while Blue Team took **${blueTeamTime}s**.`)
-          .setColor('#ff0000');
-      } else {
-        winnerTeam = 'Blue';
-        resultEmbed = new EmbedBuilder()
-          .setTitle('Blue Team Wins by Time!')
-          .setDescription(`Blue Team took **${blueTeamTime}s** while Red Team took **${redTeamTime}s**.`)
-          .setColor('#0000ff');
-      }
+    // React with flags for language selection
+    const languages = ['🇩🇪', '🇬🇧', '🇫🇷', '🇪🇸']; // Example language flags
+    for (let flag of languages) {
+      await languageMessage.react(flag);
     }
 
-    await message.channel.send({ embeds: [resultEmbed] });
+    // Only the command sender can react
+    await languageMessage.awaitReactions({ max: 1, time: 60000, errors: ['time'], filter: (reaction, user) => user.id === message.author.id });
+
+    // Delete the message after the user reacts
+    await languageMessage.delete();
+
+    // Randomly choose starting team
+    const startingTeam = Math.random() > 0.5 ? 'Blue' : 'Red';
+    message.channel.send(`${startingTeam} team will start first!`);
+
+    // Ask questions based on players' quiz data and record responses
+    const results = await askQuestions(teamRed, teamBlue, db);
+
+    // Calculate target score for the chasing team
+    const targetScore = calculateTarget(results.blue);
+
+    // Show the target and results
+    const resultEmbed = new MessageEmbed()
+      .setTitle('Results')
+      .addField('Team Blue', `${results.blue.correct}/${results.blue.total} in ${results.blue.time}s`)
+      .addField('Team Red', `${results.red.correct}/${results.red.total} in ${results.red.time}s`)
+      .addField('Target for Red Team', targetScore.toString())
+      .setColor('#FF0000');
+
+    message.channel.send({ embeds: [resultEmbed] });
   }
-};
+});
+
+client.login('YOUR_DISCORD_BOT_TOKEN');
