@@ -83,8 +83,13 @@ async function startTeamQuiz(message, team, duelData) {
 
 async function askQuizQuestions(message, playerId) {
     const user = await message.client.users.fetch(playerId);
-    const quizData = [germanQuizData, frenchQuizData, russianQuizData][Math.floor(Math.random() * 3)];
-    const questions = shuffleArray(Object.values(quizData).flat()).slice(0, 5);
+
+    // Select a random language quiz dataset
+    const quizDatasets = [germanQuizData, frenchQuizData, russianQuizData];
+    const selectedQuizData = quizDatasets[Math.floor(Math.random() * quizDatasets.length)];
+
+    // Ensure selectedQuizData is an array and extract questions safely
+    const questions = shuffleArray(Array.isArray(selectedQuizData) ? selectedQuizData : Object.values(selectedQuizData).flat()).slice(0, 5);
 
     let score = 0, startTime = Date.now();
     for (const question of questions) {
