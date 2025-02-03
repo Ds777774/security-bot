@@ -71,4 +71,4 @@ client.on('message', async (message) => {
   }
 });
 
-client.login('YOUR_DISCORD_BOT_TOKEN');
+client.login('DISCORD_TOKEN');
