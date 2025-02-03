@@ -1,4 +1,3 @@
-const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 // Active Quiz Tracking
 const activeQuizzes = {};
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
@@ -127,45 +126,67 @@ Object.keys(wordOfTheDayTimes).forEach((language) => {
   });
 });
 
-client.on('interactionCreate', async (interaction) => {
-    if (interaction.isCommand()) {
-        // Check if the interaction is for a slash command
-        switch (interaction.commandName) {
-            case 'quiz':
-                await handleQuizCommand(interaction);
-                break;
-            case 'leaderboard':
-                await leaderboard.execute(interaction);
-                break;
-            case 'ticket':
-                await ticket.execute(interaction);
-                break;
-            case 'suggestion':
-                await suggestion.execute(interaction);
-                break;
-            case 'announcement':
-                await announcement.execute(interaction);
-                break;
-            case 'updates':
-                await updates.execute(interaction);
-                break;
-            case 'help':
-                await help.execute(interaction);
-                break;
-            case 'resources':
-                await resources.execute(interaction);
-                break;
-            case 'modrank':
-                await modRank.execute(interaction); // Check modrank leaderboard
-                break;
-            default:
-                await interaction.reply('Unknown command');
-                break;
-        }
-    }
+// Check if the message is badwords in any language
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    await handleBanCommand(message);
+
+// Track bumping points for the bump bot
+    await modRank.trackBumpingPoints(message); 
+
+    // Handle !modrank command
+    if (message.content.toLowerCase() === '!modrank') {
+        await modRank.execute(message); // Display the leaderboard
+    } 
+
+    // Optional: Update mod rank when a moderator sends a message
+    const moderatorRole = message.guild.roles.cache.find(role => role.name.toLowerCase() === 'moderator');
+    if (moderatorRole && message.member.roles.cache.has(moderatorRole.id)) {
+        await modRank.updateModRank(message.author.id, message.author.username, message.guild); // Update points for moderators
+    }
+        await handleSpamDetection(message);
+await handleBanCommand(message);
+if (message.content.toLowerCase() === '!leaderboard') {
+   leaderboard.execute(message);
+}
+
+if (message.content.toLowerCase() === '!ticket') {
+  ticket.execute(message);
+}
+
+if(message.content.toLowerCase().startsWith('!suggestion')) {
+    suggestion.execute(message);
+}
+    // Handle bad words
+    handleBadWords(message);
 });
 
+// Commands and Event Handling
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
 
+// Commands for Announcement
+    if (message.content.toLowerCase() === '!announcement') {
+    announcement.execute(message);
+}
+    if (message.content.toLowerCase() === '!updates') {
+        updates.execute(message); // Execute the updates command
+}
+    // Check if the message is a greeting in any language
+    const response = handleGreeting(message);
+
+    if (response) {
+        // Reply with "How are you?" in the detected language
+        await message.reply(response);
+        return; // Exit after replying to avoid processing other commands
+    }
+
+    if (message.content.toLowerCase() === '!quiz') {
+        // Check if the user is already participating in a quiz
+        if (activeQuizzes[message.author.id]) {
+            return message.channel.send('You are already participating in a quiz! Please finish it before starting a new one.');
+        }
 
         try {
             // Step 1: Select Language
@@ -360,7 +381,14 @@ delete activeQuizzes[message.author.id];
         }
     } 
 
-  
+    if (message.content.toLowerCase() === '!help') {
+        help.execute(message);
+    }   
+
+    if (message.content.toLowerCase() === '!resources') {
+        resources.execute(message);
+    }
+}); 
 
 client.once('ready', () => {
     console.log(`${client.user.tag} is online!`);
