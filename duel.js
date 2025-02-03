@@ -111,11 +111,14 @@ async function startTeamQuiz(message, team, duelData) {
         });
     });
 
-    await message.channel.send({ embeds: [resultEmbed] });
+    const resultMessage = await message.channel.send({ embeds: [resultEmbed] });
 
     // Set target score for the other team
     const otherTeam = team === 'Blue' ? 'Red' : 'Blue';
-    await message.channel.send(`**${otherTeam} Team needs to score ${totalScore + 1} to win!**`);
+    resultEmbed.addFields({ name: `${otherTeam} Team needs ${totalScore + 1} to win!`, value: '\u200B' });
+
+    await resultMessage.edit({ embeds: [resultEmbed] });
+    await setTimeout(() => resultMessage.delete(), 5000); // Delete first team's result after 5 seconds
 
     // After the first team finishes, start the second team
     if (otherTeam === 'Red') {
@@ -128,14 +131,15 @@ async function startTeamQuiz(message, team, duelData) {
 
         // Show the final results with the winner or loser
         const finalEmbed = new EmbedBuilder()
-            .setTitle(`Final Result: ${winner} Team Wins!`)
+            .setTitle(`${winner} Team Wins!`)
             .setDescription(`**Blue Team**: ${blueScore} points, Time: ${duelData.times['Blue']}s\n**Red Team**: ${redScore} points, Time: ${duelData.times['Red']}s`)
             .setColor(winner === 'Blue' ? '#3498db' : '#e74c3c')
             .addFields(
                 { name: `**${winner === 'Blue' ? 'Blue' : 'Red'} Team Wins!**`, value: `**${winner === 'Blue' ? 'Red' : 'Blue'} Team Lost!**`, inline: false }
             );
 
-        await message.channel.send({ embeds: [finalEmbed] });
+        const finalResultMessage = await message.channel.send({ embeds: [finalEmbed] });
+        await setTimeout(() => finalResultMessage.delete(), 5000); // Delete the final result after 5 seconds
 
         delete activeDuels[message.channel.id]; // End the duel
     }
