@@ -1,9 +1,17 @@
 const { Client, EmbedBuilder } = require('discord.js');
+const { russianQuizData } = require('./russianD');
 const { germanQuizData } = require('./germanD');
 const { frenchQuizData } = require('./frenchD');
-const { russianQuizData } = require('./russianD');
 
 const activeDuels = {}; // Track ongoing duels
+
+// Shuffle function to randomize an array
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+    }
+}
 
 module.exports = {
     name: 'duel',
@@ -13,39 +21,33 @@ module.exports = {
             return message.channel.send('A duel is already in progress in this channel.');
         }
 
-        // Step 1: Choose Language
+        // Ask user to select a language
         const languageEmbed = new EmbedBuilder()
-            .setTitle('Choose a Language for the Quiz')
-            .setDescription('React to select the language:\n\n🇩🇪: German\n🇫🇷: French\n🇷🇺: Russian')
+            .setTitle('Select a Language')
+            .setDescription('React with the corresponding emoji:\n🇩 - German\n🇷 - Russian\n🇫 - French')
             .setColor('#acf508');
 
         const languageMessage = await message.channel.send({ embeds: [languageEmbed] });
-        const languageEmojis = ['🇩🇪', '🇫🇷', '🇷🇺'];
-        const languages = ['german', 'french', 'russian'];
+        await languageMessage.react('🇩'); // German
+        await languageMessage.react('🇷'); // Russian
+        await languageMessage.react('🇫'); // French
 
-        for (const emoji of languageEmojis) {
-            await languageMessage.react(emoji);
-        }
+        const filter = (reaction, user) => ['🇩', '🇷', '🇫'].includes(reaction.emoji.name) && user.id === message.author.id;
+        const collected = await languageMessage.awaitReactions({ filter, max: 1, time: 30000 });
 
-        const languageReaction = await languageMessage.awaitReactions({
-            filter: (reaction, user) => languageEmojis.includes(reaction.emoji.name) && user.id === message.author.id,
-            max: 1,
-            time: 15000,
-        });
-
-        if (!languageReaction.size) {
-            try {
-                await languageMessage.delete();  // Ensure the message is deleted after timeout
-            } catch (err) {
-                console.error('Error deleting message:', err);  // Catch potential errors
-            }
+        if (!collected.size) {
             return message.channel.send('No language selected. Duel cancelled.');
         }
 
-        const selectedLanguage = languages[languageEmojis.indexOf(languageReaction.first().emoji.name)];
+        let selectedQuizData;
+        const reaction = collected.first().emoji.name;
+        if (reaction === '🇩') selectedQuizData = germanQuizData;
+        else if (reaction === '🇷') selectedQuizData = russianQuizData;
+        else if (reaction === '🇫') selectedQuizData = frenchQuizData;
+
         await languageMessage.delete();
 
-        // Step 2: Form Teams
+        // Collect players for the duel
         const players = [];
         const mentionFilter = (m) => m.mentions.users.size > 0 && m.author.id === message.author.id;
         const teamEmbed = new EmbedBuilder()
@@ -75,7 +77,7 @@ module.exports = {
 
         await message.channel.send({ embeds: [teamFormationEmbed] }).then(msg => setTimeout(() => msg.delete(), 5000));
 
-        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, selectedLanguage };
+        activeDuels[message.channel.id] = { teamBlue, teamRed, scores: { Blue: 0, Red: 0 }, times: { Blue: 0, Red: 0 }, selectedQuizData };
         await startTeamQuiz(message, startingTeam, activeDuels[message.channel.id]);
     }
 };
@@ -83,17 +85,9 @@ module.exports = {
 async function startTeamQuiz(message, team, duelData) {
     const teamPlayers = team === 'Blue' ? duelData.teamBlue : duelData.teamRed;
     let totalScore = 0, totalTime = 0;
-    let selectedQuizData;
-
-    if (duelData.selectedLanguage === 'german') selectedQuizData = germanQuizData;
-    else if (duelData.selectedLanguage === 'french') selectedQuizData = frenchQuizData;
-    else if (duelData.selectedLanguage === 'russian') selectedQuizData = russianQuizData;
-
-    // Use the direct data without shuffling or selecting random questions
-    const questions = selectedQuizData;  // Use all the questions from the selected language directly
 
     for (const player of teamPlayers) {
-        const result = await askQuizQuestions(message, player, questions);
+        const result = await askQuizQuestions(message, player, duelData.selectedQuizData);
         totalScore += result.score;
         totalTime += result.time;
     }
@@ -120,17 +114,18 @@ async function startTeamQuiz(message, team, duelData) {
     }
 }
 
-async function askQuizQuestions(message, playerId, questions) {
+async function askQuizQuestions(message, playerId, selectedQuizData) {
     const user = await message.client.users.fetch(playerId);
     
-    if (!questions || questions.length === 0) {
+    if (!selectedQuizData || selectedQuizData.length === 0) {
         return message.channel.send(`<@${playerId}>, there was an error loading the quiz questions.`);
     }
 
+    const questions = selectedQuizData.slice(0, 5); // Get the first 5 questions
     let score = 0, startTime = Date.now();
 
     for (const question of questions) {
-        const options = [...question.options]; // No shuffle, just use the order in the data
+        const options = [...question.options];
         const correctIndex = options.indexOf(question.correct);
         const embed = new EmbedBuilder()
             .setTitle('Quiz Question')
