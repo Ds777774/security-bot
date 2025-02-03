@@ -120,20 +120,38 @@ async function startTeamQuiz(message, team, duelData) {
 }
 
 async function showFinalResult(message, duelData) {
-    const { scores } = duelData;
-    const winner = scores.Blue > scores.Red ? 'Blue' : scores.Red > scores.Blue ? 'Red' : 'Draw';
+    const { scores, times } = duelData;
+    let winner;
+
+    if (scores.Blue > scores.Red) {
+        winner = 'Blue';
+    } else if (scores.Red > scores.Blue) {
+        winner = 'Red';
+    } else {
+        // If scores are equal, decide by time taken
+        if (times.Blue < times.Red) {
+            winner = 'Blue';
+        } else if (times.Red < times.Blue) {
+            winner = 'Red';
+        } else {
+            winner = 'Draw'; // If both score and time are equal, it's a true tie
+        }
+    }
 
     const finalResultEmbed = new EmbedBuilder()
         .setTitle('Final Duel Results')
-        .setDescription(winner === 'Draw' ? 'It\'s a tie!' : `🏆 **${winner} Team Wins!** 🏆`)
-        .setColor(winner === 'Blue' ? '#3498db' : winner === 'Red' ? '#e74c3c' : '#ffff00');
+        .setDescription(winner === 'Draw' ? 'It\'s a tie!' : `🏆 **${winner} Team Wins!** 🏆 (Faster Team)`)
+        .setColor(winner === 'Blue' ? '#3498db' : winner === 'Red' ? '#e74c3c' : '#ffff00')
+        .addFields(
+            { name: 'Blue Team Score', value: `${scores.Blue} (Time: ${times.Blue}s)`, inline: true },
+            { name: 'Red Team Score', value: `${scores.Red} (Time: ${times.Red}s)`, inline: true }
+        );
 
     await message.channel.send({ embeds: [finalResultEmbed] });
 
     // Reset duel after completion
     delete activeDuels[message.channel.id];
 }
-
 async function askQuizQuestions(message, playerId, selectedQuizData) {
     const user = await message.client.users.fetch(playerId);
     const questions = selectedQuizData.slice(0, 5);
